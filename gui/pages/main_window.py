@@ -15,7 +15,7 @@ class MainWindow:
         self.container = tk.Frame(master)
         self.container.grid(padx=5, pady=5)
 
-        # Créer les frames
+        # C réer les frames
         self.menu = MenuFrame(self.container, self)
         self.frame2 = tk.Frame(self.container)  
         self.visualisation = VisualisationFrame(self.container,self)
