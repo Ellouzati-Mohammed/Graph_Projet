@@ -17,7 +17,9 @@ class MenuFrame(tk.Frame):
             ("Bouton 5", self.controller.change_frame, "Action pour le bouton 5"),
             ("Bouton 6", self.controller.change_frame, "Action pour le bouton 6"),
             ("Bouton 7", self.controller.change_frame, "frame2"),
+            ("Simplexe", self.controller.change_frame, "simplexe"),  # <-- nouveau bouton ajouté ici
         ]
+
 
         for index, (label, command, msg) in enumerate(buttons): #lajout des button auu frame
             row = index // 3

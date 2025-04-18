@@ -52,7 +52,7 @@ class VisualisationFrame(tk.Frame):
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
     
 
-    def visualiser_algo_graphe(self):        
+    def visualiser_welshpowell_algo_graphe(self):        
         graphe_data = graph.get_graphe()
         sommets = graphe_data['sommets']
         matrice_adjacence = graphe_data['matrice']
@@ -106,3 +106,31 @@ class VisualisationFrame(tk.Frame):
         canvas.draw()
         self.canvas_widget = canvas.get_tk_widget()
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+        
+        def visualiser_simplexe(self):
+            from algorithms.simplex.Simplexe import simplexe
+
+            c = [-3, -5]  # Maximiser 3x + 5y
+            A = [[1, 0], [0, 2], [3, 2]]
+            b = [4, 12, 18]
+
+            result = simplexe(c, A, b)
+
+            if hasattr(self, 'canvas_widget'):
+                self.canvas_widget.destroy()
+
+            frame = tk.Frame(self)
+            frame.pack(fill=tk.BOTH, expand=True)
+            
+            result_text = f"Succès : {result.success}\n\n"
+            result_text += f"Valeur optimale : {result.fun:.2f}\n"
+            result_text += "Variables :\n"
+            for i, val in enumerate(result.x):
+                result_text += f"x{i+1} = {val:.2f}\n"
+
+            label = tk.Label(frame, text=result_text, justify="left", font=("Courier", 12))
+            label.pack(padx=10, pady=10, anchor="w")
+            self.canvas_widget = frame
+
+
+

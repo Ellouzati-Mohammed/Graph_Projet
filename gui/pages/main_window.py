@@ -35,9 +35,11 @@ class MainWindow:
             self.frame2.grid(row=0, column=0, padx=20, pady=20)
         elif frame_name == "visualisation":
             self.visualisation.grid(row=0, column=0, padx=20, pady=20)
-            #self.visualisation.visualiser_graphe()
-            self.visualisation.visualiser_algo_graphe()
-    
+            self.visualisation.visualiser_welshpowell_algo_graphe()
+        elif frame_name == "simplexe":
+            self.visualisation.grid(row=0, column=0, padx=20, pady=20)
+            self.visualisation.visualiser_simplexe()
+
     def on_closing(self):
         print("La fenêtre est en train de se fermer.")  # Afficher un message de fermeture
         self.master.quit() 
