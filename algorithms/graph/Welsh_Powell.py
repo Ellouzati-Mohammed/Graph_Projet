@@ -13,7 +13,7 @@ def Welsh_Powell(sommets, matrice_adjacence):
     degree_each_Vertex.sort(key=lambda item: item[1], reverse=True)
 
     used_colors = []  # Liste des couleurs utilisées
-
+    print(matrice_adjacence)
     while len(colored_sommets) < len(sommets):
 
         current_color = (

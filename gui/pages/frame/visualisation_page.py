@@ -52,7 +52,7 @@ class VisualisationFrame(tk.Frame):
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
     
 
-    def visualiser_algo_graphe(self):        
+    def visualiser_Wech_Powell_graphe(self):        
         graphe_data = graph.get_graphe()
         sommets = graphe_data['sommets']
         matrice_adjacence = graphe_data['matrice']
@@ -100,7 +100,8 @@ class VisualisationFrame(tk.Frame):
         edge_labels = nx.get_edge_attributes(G, "weight")
         nx.draw_networkx_edge_labels(G, pos, ax=ax, 
                                     edge_labels=edge_labels,
-                                    font_color='red')
+                                    font_color='red',
+                                    font_size=7)
 
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()

@@ -1,10 +1,11 @@
 
 class MatriceAdjacence:
+
     def __init__(self,oriente=False):
         self.sommets = []
         self.matrice = []
         self.oriente = oriente
-    
+   
     def ajouter_sommet(self, sommet):
         if sommet not in self.sommets:
             self.sommets.append(sommet)

@@ -11,12 +11,8 @@ class MenuFrame(tk.Frame):
 
         buttons = [
             ("Welsh-Powell", self.controller.change_frame, "visualisation"),
-            ("Kruskal", self.controller.change_frame, "Kruskal"),
-            ("North West", self.controller.change_frame, "North West"),
-            ("Bouton 4", self.controller.change_frame, "visualisation"),
-            ("Bouton 5", self.controller.change_frame, "Action pour le bouton 5"),
-            ("Bouton 6", self.controller.change_frame, "Action pour le bouton 6"),
-            ("Bouton 7", self.controller.change_frame, "frame2"),
+            ("Simplex", self.controller.change_frame, "visualisation")
+           
         ]
 
         for index, (label, command, msg) in enumerate(buttons): #lajout des button auu frame
@@ -26,7 +22,7 @@ class MenuFrame(tk.Frame):
                 self,
                 text=label,
                 **button_style,
-                command=lambda m=msg: command(m)
+                command=lambda m=msg,l=label : command(m,l)
             )
             btn.grid(row=row, column=col, padx=10, pady=10)
         

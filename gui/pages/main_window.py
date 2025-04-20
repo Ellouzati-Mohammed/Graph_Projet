@@ -25,7 +25,7 @@ class MainWindow:
 
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    def change_frame(self, frame_name):
+    def change_frame(self, frame_name,algo_name=None):
         for widget in self.container.winfo_children():
             widget.grid_forget()
 
@@ -35,8 +35,15 @@ class MainWindow:
             self.frame2.grid(row=0, column=0, padx=20, pady=20)
         elif frame_name == "visualisation":
             self.visualisation.grid(row=0, column=0, padx=20, pady=20)
+            if algo_name == "Welsh-Powell":
+                self.visualisation.visualiser_graphe()
+            elif algo_name == "Simplex":
+                print("Lancement de l'algo Simplex")
+            else:
+                print("Aucun algo spécifié ou algo inconnu")
+
             #self.visualisation.visualiser_graphe()
-            self.visualisation.visualiser_algo_graphe()
+            #self.visualisation.visualiser_Wech_Powell_graphe()
     
     def on_closing(self):
         print("La fenêtre est en train de se fermer.")  # Afficher un message de fermeture
