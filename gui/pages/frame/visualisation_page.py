@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from data.graph_data import graph 
 from Visualisation.graph.WelshPowellPage import WelshPowellPage
+from Visualisation.graph.KruskalPage import KruskalPage
+
 
 class VisualisationFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -18,6 +20,8 @@ class VisualisationFrame(tk.Frame):
 
         if algo_name == "Welsh-Powell":
             page = WelshPowellPage(self.content_frame)
+        elif algo_name == "Kruskal":
+            page = KruskalPage(self.content_frame)
         else:
             page = tk.Label(self.content_frame, text="Algorithme non disponible")
 

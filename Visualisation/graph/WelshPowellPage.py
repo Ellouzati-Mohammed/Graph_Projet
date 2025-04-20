@@ -20,7 +20,7 @@ class WelshPowellPage(tk.Frame):
         
         colored_sommets = Welsh_Powell(sommets, matrice_adjacence)
         color_map = {sommet: color for sommet, color in colored_sommets}
-        print("Coloration:", color_map)
+       
 
         G = nx.Graph()
         G.add_nodes_from(sommets)
