@@ -25,22 +25,21 @@ class MainWindow:
 
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    def change_frame(self, frame_name,algo_name=None):
-        for widget in self.container.winfo_children():
-            widget.grid_forget()
-
+    def change_frame(self, frame_name, algo_name=None):
         if frame_name == "menu":
+            for widget in self.container.winfo_children():
+                widget.grid_forget()
             self.menu.grid(row=0, column=0, padx=20, pady=20)
-        elif frame_name == "frame2":
-            self.frame2.grid(row=0, column=0, padx=20, pady=20)
-        elif frame_name == "visualisation":
-            self.visualisation.grid(row=0, column=0, padx=20, pady=20)
-            if algo_name == "Welsh-Powell":
-                self.visualisation.visualiser_graphe()
-            elif algo_name == "Simplex":
-                print("Lancement de l'algo Simplex")
-            else:
-                print("Aucun algo spécifié ou algo inconnu")
+        
+        elif frame_name == "visualisation" and algo_name:
+            # Créer une nouvelle fenêtre
+            new_window = tk.Toplevel(self.master)
+            new_window.title(f"Visualisation - {algo_name}")
+
+            visualisation_frame = VisualisationFrame(new_window, self)
+            visualisation_frame.pack(fill="both", expand=True)
+            visualisation_frame.afficher_algo(algo_name)
+
 
             #self.visualisation.visualiser_graphe()
             #self.visualisation.visualiser_Wech_Powell_graphe()
