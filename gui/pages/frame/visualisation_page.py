@@ -6,6 +6,7 @@ from data.graph_data import graph
 from Visualisation.graph.WelshPowellPage import WelshPowellPage
 from Visualisation.graph.KruskalPage import KruskalPage
 from Visualisation.graph.DjikstraPage import DijkstraPage
+from Visualisation.Programation_leaner.SimplexPage import SimplexePage
 
 
 class VisualisationFrame(tk.Frame):
@@ -25,6 +26,8 @@ class VisualisationFrame(tk.Frame):
             page = KruskalPage(self.content_frame)
         elif algo_name=="Djikstra":
             page= DijkstraPage(self.content_frame)
+        elif algo_name=="Simplex":
+            page= SimplexePage(self.content_frame)
         else:
             page = tk.Label(self.content_frame, text="Algorithme non disponible")
 
