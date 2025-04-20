@@ -13,7 +13,7 @@ class MenuFrame(tk.Frame):
             ("Welsh-Powell", self.controller.change_frame, "visualisation"),
             ("Simplex", self.controller.change_frame, "visualisation"),
             ("Kruskal", self.controller.change_frame, "visualisation"),
-             ("Djikstra", self.controller.change_frame, "visualisation")
+            ("Djikstra", self.controller.change_frame, "visualisation")
            
         ]
 
