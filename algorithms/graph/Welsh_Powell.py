@@ -54,5 +54,4 @@ def Welsh_Powell(sommets, matrice_adjacence):
         # Supprimer les sommets colorés de degree_each_Vertex
         degree_each_Vertex = [v for v in degree_each_Vertex if v[0] not in colored_this_round]
 
-        
     return colored_sommets

@@ -5,6 +5,7 @@ import networkx as nx
 from data.graph_data import graph 
 from Visualisation.graph.WelshPowellPage import WelshPowellPage
 from Visualisation.graph.KruskalPage import KruskalPage
+from Visualisation.graph.DjikstraPage import DijkstraPage
 
 
 class VisualisationFrame(tk.Frame):
@@ -22,7 +23,10 @@ class VisualisationFrame(tk.Frame):
             page = WelshPowellPage(self.content_frame)
         elif algo_name == "Kruskal":
             page = KruskalPage(self.content_frame)
+        elif algo_name=="Djikstra":
+            page= DijkstraPage(self.content_frame)
         else:
             page = tk.Label(self.content_frame, text="Algorithme non disponible")
+
 
         page.pack(fill="both", expand=True)
