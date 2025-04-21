@@ -14,8 +14,8 @@ class MenuFrame(tk.Frame):
             ("Simplex", self.controller.change_frame, "visualisation"),
             ("moindre-Cout", self.controller.change_frame, "visualisation"),
             ("Kruskal", self.controller.change_frame, "visualisation"),
-            ("Djikstra", self.controller.change_frame, "visualisation")
-           
+            ("Djikstra", self.controller.change_frame, "visualisation"),
+            ("vogels Approximation", self.controller.change_frame, "visualisation")
         ]
 
         for index, (label, command, msg) in enumerate(buttons): #lajout des button auu frame
