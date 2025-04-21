@@ -7,6 +7,7 @@ from Visualisation.graph.WelshPowellPage import WelshPowellPage
 from Visualisation.graph.KruskalPage import KruskalPage
 from Visualisation.graph.DjikstraPage import DijkstraPage
 from Visualisation.Programation_leaner.SimplexPage import SimplexePage
+from Visualisation.Programation_leaner.MoindreCoutPage import MoindreCoutPage
 
 
 class VisualisationFrame(tk.Frame):
@@ -28,6 +29,8 @@ class VisualisationFrame(tk.Frame):
             page= DijkstraPage(self.content_frame)
         elif algo_name=="Simplex":
             page= SimplexePage(self.content_frame)
+        elif algo_name=="moindre-Cout":
+            page= MoindreCoutPage(self.content_frame)
         else:
             page = tk.Label(self.content_frame, text="Algorithme non disponible")
 
