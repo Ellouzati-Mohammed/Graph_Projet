@@ -9,6 +9,7 @@ from Visualisation.graph.DjikstraPage import DijkstraPage
 from Visualisation.Programation_leaner.SimplexPage import SimplexePage
 from Visualisation.Programation_leaner.MoindreCoutPage import MoindreCoutPage
 from Visualisation.Programation_leaner.vogelsPage import VogelsApproximationPage
+from Visualisation.graph.BellmanFordPage import BellmanFordPage
 
 
 
@@ -35,6 +36,8 @@ class VisualisationFrame(tk.Frame):
             page= MoindreCoutPage(self.content_frame)
         elif algo_name=="vogels Approximation":
             page= VogelsApproximationPage(self.content_frame)
+        elif algo_name=="Bellman-Ford":
+            page= BellmanFordPage(self.content_frame)
         else:
             page = tk.Label(self.content_frame, text="Algorithme non disponible")
 
