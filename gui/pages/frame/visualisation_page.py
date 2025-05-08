@@ -84,13 +84,12 @@ class VisualisationFrame(tk.Frame):
         elif algo_name == "Ford-Fulkerson":
             page = FordFulkersonPage(self.content_frame)
         elif algo_name == "NorthWest":
-            try:
-                page = NorthwestPage(self.content_frame)
-            except Exception as e:
-                error_label = ttk.Label(
-                    self.content_frame,
-                    text=f"Erreur lors de l'affichage : {str(e)}",
-                    font=("Arial", 12),
-                    foreground="red",
-                )
-                error_label.pack(pady=20)
+            page = NorthwestPage(self.content_frame)
+        else:
+            error_label = ttk.Label(
+                self.content_frame,
+                text="Erreur lors de l'affichage : Algorithme inconnu",
+                font=("Arial", 12),
+                foreground="red",
+            )
+            error_label.pack(pady=20)
