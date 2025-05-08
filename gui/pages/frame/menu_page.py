@@ -11,7 +11,7 @@ class MenuFrame(tk.Frame):
         self.controller = controller  
 
         buttons = [
-            ("Welsh-Powell", self.controller.change_frame, "input_WelshPowell"),
+            ("Welsh-Powell", self.controller.change_frame, "visualisation"),
             ("Simplex", self.controller.change_frame, "visualisation"),
             ("moindre-Cout", self.controller.change_frame, "visualisation"),
             ("Kruskal", self.controller.change_frame, "visualisation"),
