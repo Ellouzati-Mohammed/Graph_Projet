@@ -1,49 +1,91 @@
 import tkinter as tk
+from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
 from assets.styles.AlgoButton import button_style
 from gui.pages.frame.menu_page import MenuFrame
 from gui.pages.frame.visualisation_page import VisualisationFrame
+from gui.pages.frame.input_dijkstra_page import InputDijkstraPage
 
 
 class MainWindow:
     def __init__(self, master):
         self.master = master
         master.title("PL && Graph")
+        
+        # Configurer la grille principale
+        master.grid_rowconfigure(0, weight=1)
+        master.grid_columnconfigure(0, weight=1)
 
         self.container = tk.Frame(master)
-        self.container.grid(padx=5, pady=5)
+        self.container.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_columnconfigure(0, weight=1)
 
         # Créer les frames
-        self.menu = MenuFrame(self.container, self)
-        self.frame2 = tk.Frame(self.container)  
-        self.visualisation = VisualisationFrame(self.container,self)
+        self.frames = {}
+        self.frames["menu"] = MenuFrame(self.container, self)
+        self.frames["input_dijkstra"] = InputDijkstraPage(self.container, self)
+        self.frames["visualisation"] = VisualisationFrame(self.container, self)
 
         # Par défaut, afficher menu
-        self.menu.grid(row=0, column=0, padx=0, pady=0)
+        self.show_frame("menu")
 
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    def show_frame(self, frame_name):
+        """Affiche le frame demandé"""
+        frame = self.frames.get(frame_name)
+        if frame:
+            # Cacher tous les frames
+            for f in self.frames.values():
+                f.grid_remove()
+            # Afficher le frame demandé
+            frame.grid(row=0, column=0, sticky="nsew")
+
     def change_frame(self, frame_name, algo_name=None):
-        if frame_name == "menu":
-            for widget in self.container.winfo_children():
-                widget.grid_forget()
-            self.menu.grid(row=0, column=0, padx=20, pady=20)
+        """Change de frame et gère les cas spéciaux"""
+        print(f"Changement vers {frame_name} avec algo {algo_name}")  # Debug
         
+        if frame_name == "input_dijkstra":
+            self.show_frame("input_dijkstra")
+            
+        elif frame_name == "menu":
+            self.show_frame("menu")
+            
         elif frame_name == "visualisation" and algo_name:
-            # Créer une nouvelle fenêtre
+            # Créer une nouvelle fenêtre pour la visualisation
             new_window = tk.Toplevel(self.master)
             new_window.title(f"Visualisation - {algo_name}")
-
+            new_window.geometry("800x600")  # Taille par défaut
+            
+            # Configurer la grille de la nouvelle fenêtre
+            new_window.grid_rowconfigure(0, weight=1)
+            new_window.grid_columnconfigure(0, weight=1)
+            
+            # Créer et afficher le frame de visualisation
             visualisation_frame = VisualisationFrame(new_window, self)
-            visualisation_frame.pack(fill="both", expand=True)
-            visualisation_frame.afficher_algo(algo_name)
-
-
-            #self.visualisation.visualiser_graphe()
-            #self.visualisation.visualiser_Wech_Powell_graphe()
+            visualisation_frame.grid(row=0, column=0, sticky="nsew")
+            visualisation_frame.set_algorithm(algo_name)
+    
+    def show_visualisation(self, algo_name, data):
+        """Affiche la visualisation avec les données"""
+        # Créer une nouvelle fenêtre
+        new_window = tk.Toplevel(self.master)
+        new_window.title(f"Visualisation - {algo_name}")
+        new_window.geometry("800x600")
+        
+        # Configurer la grille
+        new_window.grid_rowconfigure(0, weight=1)
+        new_window.grid_columnconfigure(0, weight=1)
+        
+        # Créer et afficher le frame de visualisation
+        visualisation_frame = VisualisationFrame(new_window, self)
+        visualisation_frame.grid(row=0, column=0, sticky="nsew")
+        visualisation_frame.set_algorithm(algo_name)
+        visualisation_frame.set_data(data)
     
     def on_closing(self):
-        print("La fenêtre est en train de se fermer.")  # Afficher un message de fermeture
+        print("La fenêtre est en train de se fermer.")
         self.master.quit() 
