@@ -67,28 +67,35 @@ class VisualisationFrame(tk.Frame):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
 
-        if algo_name == "Welsh-Powell":
-            page = WelshPowellPage(self.content_frame)
-        elif algo_name == "Kruskal":
-            page = KruskalPage(self.content_frame)
-        elif algo_name == "Djikstra":
-            page = DijkstraPage(self.content_frame)
-        elif algo_name == "Simplex":
-            page = SimplexePage(self.content_frame)
-        elif algo_name == "moindre-Cout":
-            page = MoindreCoutPage(self.content_frame)
-        elif algo_name == "vogels Approximation":
-            page = VogelsApproximationPage(self.content_frame)
-        elif algo_name == "Bellman-Ford":
-            page = BellmanFordPage(self.content_frame)
-        elif algo_name == "Ford-Fulkerson":
-            page = FordFulkersonPage(self.content_frame)
-        elif algo_name == "NorthWest":
-            page = NorthwestPage(self.content_frame)
-        else:
+        try:
+            if algo_name == "Welsh-Powell":
+                page = WelshPowellPage(self.content_frame)
+            elif algo_name == "Kruskal":
+                page = KruskalPage(self.content_frame)
+            elif algo_name == "Djikstra":
+                page = DijkstraPage(self.content_frame)
+            elif algo_name == "Simplex":
+                page = SimplexePage(self.content_frame)
+            elif algo_name == "moindre-Cout":
+                page = MoindreCoutPage(self.content_frame)
+            elif algo_name == "vogels Approximation":
+                page = VogelsApproximationPage(self.content_frame)
+            elif algo_name == "Bellman-Ford":
+                page = BellmanFordPage(self.content_frame)
+            elif algo_name == "Ford-Fulkerson":
+                page = FordFulkersonPage(self.content_frame)
+            elif algo_name == "NorthWest":
+                page = NorthwestPage(self.content_frame)
+            else:
+                raise ValueError(f"Algorithme inconnu: {algo_name}")
+
+            # Pack the page if it was successfully created
+            page.pack(fill="both", expand=True)
+
+        except Exception as e:
             error_label = ttk.Label(
                 self.content_frame,
-                text="Erreur lors de l'affichage : Algorithme inconnu",
+                text=f"Erreur lors de l'affichage : {str(e)}",
                 font=("Arial", 12),
                 foreground="red",
             )
