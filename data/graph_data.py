@@ -1,7 +1,7 @@
 
 from data.graph_models import MatriceAdjacence
 
-graph = MatriceAdjacence(oriente=True)
+graph = MatriceAdjacence(oriente=False)
 graph.ajouter_arete('A', 'B', 2)   # A -> B (poids 2)
 graph.ajouter_arete('A', 'D', 1)   # A -> D (poids 1)
 graph.ajouter_arete('B', 'C', 3)   # B -> C (poids 3)
