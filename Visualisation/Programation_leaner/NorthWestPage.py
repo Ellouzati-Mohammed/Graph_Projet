@@ -8,17 +8,20 @@ class NorthwestPage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas_widget = None
-        self.visualiser_northwest()
+        self.data = None  # Pas de données par défaut
+        self.afficher_northwest_depuis_data()  # Affiche au démarrage
 
-    def visualiser_northwest(self):
-        # Données d'exemple
-        supply = [30,40,50]
-        demand = [35, 28, 32,25]
-        costs = np.array([
-            [6, 8, 8,5],
-            [5, 11, 9,7],
-            [8, 9, 7,13],
-        ])
+    def set_data(self, data):
+        print("Données reçues dans NorthwestPage:", data)  # Debug
+        self.data = data  # Stocke les données de l'input
+        self.afficher_northwest_depuis_data()  # Affiche avec les données de l'input
+
+    def afficher_northwest_depuis_data(self):
+        if not self.data:
+            return
+        supply = self.data['supply']
+        demand = self.data['demand']
+        costs = np.array(self.data['costs'])
         
         # Résolution
         success, message, alloc, total_cost = northwest_corner(supply, demand, costs)

@@ -20,7 +20,7 @@ class MenuFrame(tk.Frame):
             ("vogels Approximation", self.controller.change_frame, "visualisation"),
             ("Bellman-Ford", self.controller.change_frame, "visualisation"),
             ("Ford-Fulkerson", self.controller.change_frame, "visualisation"),
-            ("NorthWest", self.controller.change_frame, "visualisation"),
+            ("NorthWest", self.controller.change_frame, "input_northwest"),
         ]
 
         for index, (label, command, msg) in enumerate(buttons):

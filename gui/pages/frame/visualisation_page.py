@@ -86,6 +86,8 @@ class VisualisationFrame(tk.Frame):
                 page = FordFulkersonPage(self.content_frame)
             elif algo_name == "NorthWest":
                 page = NorthwestPage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
             else:
                 raise ValueError(f"Algorithme inconnu: {algo_name}")
 
