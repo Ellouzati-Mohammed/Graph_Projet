@@ -80,6 +80,9 @@ class VisualisationFrame(tk.Frame):
                     page.set_data(self.current_data)
             elif algo_name == "moindre-Cout":
                 page = MoindreCoutPage(self.content_frame)
+                if self.current_data:
+                    print("Transmission des données à MoindreCoutPage")
+                    page.set_data(self.current_data)
             elif algo_name == "vogels Approximation":
                 page = VogelsApproximationPage(self.content_frame)
                 if self.current_data:

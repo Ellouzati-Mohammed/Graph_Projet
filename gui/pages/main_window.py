@@ -10,6 +10,7 @@ from gui.pages.frame.input_dijkstra_page import InputDijkstraPage
 from gui.pages.frame.input_northwest_page import InputNorthwestPage
 from gui.pages.frame.input_simplex_page import InputSimplexPage
 from gui.pages.frame.input_vogels_page import InputVogelsPage
+from gui.pages.frame.input_moindercout_page import InputMoinderCoutPage
 
 
 class MainWindow:
@@ -33,6 +34,7 @@ class MainWindow:
         self.frames["input_northwest"] = InputNorthwestPage(self.container, self)
         self.frames["input_simplex"] = InputSimplexPage(self.container, self)
         self.frames["input_vogels"] = InputVogelsPage(self.container, self)
+        self.frames["input_moindercout"] = InputMoinderCoutPage(self.container, self)
         self.frames["visualisation"] = VisualisationFrame(self.container, self)
 
         # Par défaut, afficher menu
@@ -54,7 +56,7 @@ class MainWindow:
         """Change de frame et gère les cas spéciaux"""
         print(f"Changement vers {frame_name} avec algo {algo_name}")  # Debug
         
-        if frame_name in ["input_dijkstra", "input_northwest", "input_simplex", "input_vogels"]:
+        if frame_name in ["input_dijkstra", "input_northwest", "input_simplex", "input_vogels", "input_moindercout"]:
             self.show_frame(frame_name)
             
         elif frame_name == "menu":
