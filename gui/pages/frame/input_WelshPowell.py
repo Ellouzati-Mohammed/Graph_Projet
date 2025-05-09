@@ -5,8 +5,8 @@ import csv
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
-from algorithms.graph.welsh_powell import welsh_powell
-
+from algorithms.graph.Welsh_Powell import Welsh_Powell
+from Visualisation.graph.WelshPowellPage import WelshPowellPage
 class InputWelshPowell(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -50,6 +50,12 @@ class InputWelshPowell(tk.Frame):
         # Import section
         import_frame = ttk.LabelFrame(left_panel, text="Importer un graphe")
         import_frame.pack(fill="x", padx=5, pady=5)
+
+         # Reset button
+        reset_frame = ttk.Frame(left_panel)
+        reset_frame.pack(fill="x", padx=5, pady=5)
+        ttk.Button(reset_frame, text="Réinitialiser les données", 
+                 command=self.reset_data).pack(fill="x")
         
         ttk.Button(import_frame, text="Importer JSON", 
                   command=self.import_json).pack(fill="x", padx=5, pady=2)
@@ -65,15 +71,9 @@ class InputWelshPowell(tk.Frame):
         self.graph_info_label = ttk.Label(info_frame, text="Aucun graphe chargé")
         self.graph_info_label.pack(padx=5, pady=5)
         
-        # Right panel - Visualization
-        right_panel = ttk.Frame(content_frame)
-        right_panel.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        right_panel.grid_columnconfigure(0, weight=1)
-        right_panel.grid_rowconfigure(1, weight=1)
-        
-        # Visualization placeholder
-        self.viz_frame = ttk.Frame(right_panel)
-        self.viz_frame.grid(row=1, column=0, sticky="nsew")
+        # Right panel - Visualization placeholder
+        self.viz_frame = ttk.Frame(content_frame)
+        self.viz_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         
         # Navigation Frame
         nav_frame = ttk.Frame(self)
@@ -85,9 +85,8 @@ class InputWelshPowell(tk.Frame):
         self.run_button = ttk.Button(nav_frame, 
                                    text="Lancer l'algorithme", 
                                    command=self.run_algorithm,
-                                   style="Accent.TButton")
+                                   state="disabled")
         self.run_button.pack(side="right", padx=5)
-        self.run_button.config(state="disabled")
     
     def import_json(self):
         """Import graph from JSON file"""
@@ -107,7 +106,7 @@ class InputWelshPowell(tk.Frame):
                 # Convert matrix to edges
                 for i in range(len(self.sommets)):
                     for j in range(len(self.sommets)):
-                        if self.matrice[i][j] == 1 and i < j:  # Avoid duplicate edges
+                        if self.matrice[i][j] == 1 and i < j:
                             self.edges.append((self.sommets[i], self.sommets[j]))
                 
                 self.update_graph_info()
@@ -190,7 +189,25 @@ class InputWelshPowell(tk.Frame):
         
         ttk.Button(button_frame, text="Annuler", command=dialog.destroy).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Valider", command=lambda: self.validate_manual_input(dialog)).pack(side="right", padx=5)
-    
+    def reset_data(self):
+        """Réinitialise toutes les données du graphe"""
+        self.sommets = []
+        self.matrice = []
+        self.edges = []
+        
+        # Efface la visualisation si elle existe
+        if self.canvas_widget:
+            self.canvas_widget.destroy()
+            self.canvas_widget = None
+        
+        # Met à jour l'affichage des informations
+        self.update_graph_info()
+        
+        # Désactive le bouton d'exécution
+        self.run_button.config(state="disabled")
+        
+        messagebox.showinfo("Réinitialisation", "Toutes les données ont été réinitialisées")
+
     def add_edge(self, dialog):
         """Add an edge to the list"""
         try:
@@ -203,7 +220,10 @@ class InputWelshPowell(tk.Frame):
             if v1 == v2:
                 raise ValueError("Une arête ne peut pas relier un sommet à lui-même")
             
-            # Add to edges (both directions for undirected graph)
+            # Check for duplicate edges
+            if (v1, v2) in self.edges or (v2, v1) in self.edges:
+                raise ValueError(f"L'arête entre {v1} et {v2} existe déjà")
+            
             self.edges.append((v1, v2))
             self.edges_listbox.insert(tk.END, f"{v1} — {v2}")
             
@@ -219,6 +239,15 @@ class InputWelshPowell(tk.Frame):
         if not self.edges:
             messagebox.showwarning("Attention", "Veuillez ajouter au moins une arête", parent=dialog)
             return
+        
+        # Check for duplicate edges
+        seen = set()
+        for v1, v2 in self.edges:
+            edge = (min(v1, v2), max(v1, v2))
+            if edge in seen:
+                messagebox.showerror("Erreur", f"L'arête {v1}-{v2} est en double", parent=dialog)
+                return
+            seen.add(edge)
         
         # Get all unique vertices
         sommets = set()
@@ -259,7 +288,7 @@ class InputWelshPowell(tk.Frame):
         
         try:
             # Run Welsh-Powell algorithm
-            colored_vertices = welsh_powell(self.sommets, self.matrice)
+            colored_vertices = Welsh_Powell(self.sommets, self.matrice)
             
             # Create graph visualization
             self.visualize_graph(colored_vertices)
@@ -268,49 +297,36 @@ class InputWelshPowell(tk.Frame):
             messagebox.showerror("Erreur", f"Une erreur est survenue: {str(e)}")
     
     def visualize_graph(self, colored_vertices):
-        """Visualize the graph with coloring"""
-        # Clear previous visualization
-        for widget in self.viz_frame.winfo_children():
-            widget.destroy()
+        """Visualize the colored graph"""
+        if self.canvas_widget:
+            self.canvas_widget.destroy()
         
         G = nx.Graph()
-        
-        # Add nodes with color attributes
-        color_map = {}
-        for vertex, color in colored_vertices:
-            G.add_node(vertex)
-            color_map[vertex] = color
+        G.add_nodes_from(self.sommets)
         
         # Add edges
         for i in range(len(self.sommets)):
             for j in range(len(self.sommets)):
-                if self.matrice[i][j] == 1 and i < j:  # Avoid duplicate edges
+                if self.matrice[i][j] > 0 and i < j:
                     G.add_edge(self.sommets[i], self.sommets[j])
         
-        # Create figure
-        fig, ax = plt.subplots(figsize=(6, 5))
-        pos = nx.spring_layout(G, seed=42)  # Consistent layout
+        # Create color map
+        color_map = []
+        for sommet in self.sommets:
+            index = self.sommets.index(sommet)
+            for colored in colored_vertices:
+                if colored[0] == index:
+                    color_map.append(colored[1])
+                    break
         
-        # Get colors for nodes
-        node_colors = [color_map[node] for node in G.nodes()]
+        fig = plt.figure(figsize=(8, 6))
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=800, font_weight='bold')
         
-        # Draw the graph
-        nx.draw(G, pos, ax=ax, with_labels=True,
-                node_color=node_colors,
-                node_size=700,
-                font_size=10,
-                font_weight="bold",
-                cmap=plt.cm.tab20)  # Using a colormap with 20 distinct colors
-        
-        # Create canvas
         canvas = FigureCanvasTkAgg(fig, master=self.viz_frame)
         canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        
-        # Add legend for colors
-        unique_colors = set(color_map.values())
-        legend_text = f"Nombre de couleurs utilisées: {len(unique_colors)}"
-        ttk.Label(self.viz_frame, text=legend_text, font=("Arial", 10, "bold")).pack(pady=5)
+        self.canvas_widget = canvas.get_tk_widget()
+        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
     
     def clear(self):
         """Clear the page and reinitialize"""

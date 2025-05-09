@@ -7,7 +7,7 @@ from assets.styles.AlgoButton import button_style
 from gui.pages.frame.menu_page import MenuFrame
 from gui.pages.frame.visualisation_page import VisualisationFrame
 from gui.pages.frame.input_dijkstra_page import InputDijkstraPage
-
+from gui.pages.frame.input_WelshPowell import InputWelshPowell
 
 class MainWindow:
     def __init__(self, master):
@@ -27,6 +27,7 @@ class MainWindow:
         self.frames = {}
         self.frames["menu"] = MenuFrame(self.container, self)
         self.frames["input_dijkstra"] = InputDijkstraPage(self.container, self)
+        self.frames["input_WelshPowell"] = InputWelshPowell(self.container, self)
         self.frames["visualisation"] = VisualisationFrame(self.container, self)
 
         # Par défaut, afficher menu
@@ -50,6 +51,8 @@ class MainWindow:
         
         if frame_name == "input_dijkstra":
             self.show_frame("input_dijkstra")
+        elif frame_name == "input_WelshPowell":
+            self.show_frame("input_WelshPowell")
             
         elif frame_name == "menu":
             self.show_frame("menu")

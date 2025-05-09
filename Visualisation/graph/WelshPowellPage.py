@@ -6,54 +6,58 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from algorithms.graph.Welsh_Powell import Welsh_Powell  # adapte l'import selon ton arborescence
 from data.graph_data import graph  # idem ici selon ta structure
-
 class WelshPowellPage(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, controller, graph_data):
         super().__init__(parent)
+        self.controller = controller
+        self.graph_data = graph_data
         self.canvas_widget = None
-        self.visualiser_Wech_Powell_graphe()
-
-    def visualiser_Wech_Powell_graphe(self):
-        graphe_data = graph.get_graphe()
-        sommets = graphe_data['sommets']
-        matrice_adjacence = graphe_data['matrice']
         
-        colored_sommets = Welsh_Powell(sommets, matrice_adjacence)
-        color_map = {sommet: color for sommet, color in colored_sommets}
-       
-
-        G = nx.Graph()
-        G.add_nodes_from(sommets)
-
-        for i in range(len(sommets)):
-            for j in range(len(sommets)):
-                poids = matrice_adjacence[i][j]
-                if poids > 0:
-                    G.add_edge(sommets[i], sommets[j], weight=poids)
-
+        # Add a back button
+        back_button = ttk.Button(self, text="Retour", command=self.go_back)
+        back_button.pack(anchor="nw", padx=10, pady=10)
+        
+        # Visualization will be updated by parent
+        self.viz_frame = ttk.Frame(self)
+        self.viz_frame.pack(fill=tk.BOTH, expand=True)
+    def reset_graph(self):
+        """Retourne à la page d'entrée pour charger un nouveau graphe"""
+        self.controller.change_frame("input_welsh_powell")
+    def go_back(self):
+        """Return to input page"""
+        self.controller.change_frame("input_welsh_powell")
+    
+    def update_visualization(self, colored_vertices):
+        """Update the visualization with colored vertices"""
         if self.canvas_widget:
             self.canvas_widget.destroy()
-
-        fig, ax = plt.subplots(figsize=(5, 5))
-        pos = nx.spring_layout(G, seed=42)
-
-        node_colors = []
-        for index, sommet in enumerate(sommets):
-            node_colors.append(color_map.get(index, "gray"))  # couleur par défaut
-
-        nx.draw(G, pos, ax=ax, with_labels=True,
-                node_size=300,
-                node_color=node_colors,
-                font_size=9,
-                font_weight="bold")
-
-        edge_labels = nx.get_edge_attributes(G, "weight")
-        nx.draw_networkx_edge_labels(G, pos, ax=ax,
-                                     edge_labels=edge_labels,
-                                     font_color='red',
-                                     font_size=7)
-
-        canvas = FigureCanvasTkAgg(fig, master=self)
+        
+        sommets = self.graph_data['sommets']
+        matrice = self.graph_data['matrice']
+        
+        G = nx.Graph()
+        G.add_nodes_from(sommets)
+        
+        # Add edges
+        for i in range(len(sommets)):
+            for j in range(len(sommets)):
+                if matrice[i][j] > 0 and i < j:
+                    G.add_edge(sommets[i], sommets[j])
+        
+        # Create color map
+        color_map = []
+        for sommet in sommets:
+            index = sommets.index(sommet)
+            for colored in colored_vertices:
+                if colored[0] == index:
+                    color_map.append(colored[1])
+                    break
+        
+        fig = plt.figure(figsize=(8, 6))
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=800, font_weight='bold')
+        
+        canvas = FigureCanvasTkAgg(fig, master=self.viz_frame)
         canvas.draw()
         self.canvas_widget = canvas.get_tk_widget()
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
