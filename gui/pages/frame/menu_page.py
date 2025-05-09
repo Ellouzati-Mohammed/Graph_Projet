@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from assets.styles.AlgoButton import button_style
 
+
 class MenuFrame(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        self.controller = controller  
+        self.controller = controller
 
         buttons = [
             ("Welsh-Powell", self.controller.change_frame, "input_WelshPowell"),
@@ -19,6 +20,7 @@ class MenuFrame(tk.Frame):
             ("vogels Approximation", self.controller.change_frame, "visualisation"),
             ("Bellman-Ford", self.controller.change_frame, "visualisation"),
             ("Ford-Fulkerson", self.controller.change_frame, "visualisation"),
+            ("NorthWest", self.controller.change_frame, "visualisation"),
         ]
 
         for index, (label, command, msg) in enumerate(buttons):
@@ -28,12 +30,11 @@ class MenuFrame(tk.Frame):
                 self,
                 text=label,
                 **button_style,
-                command=lambda m=msg,l=label : self.handle_button_click(m,l)
+                command=lambda m=msg, l=label: self.handle_button_click(m, l),
             )
             btn.grid(row=row, column=col, padx=10, pady=10)
-    
+
     def handle_button_click(self, frame_name, algo_name):
         """Gère le clic sur un bouton d'algorithme"""
         print(f"Bouton cliqué : {algo_name} -> {frame_name}")  # Debug
         self.controller.change_frame(frame_name, algo_name)
-        
