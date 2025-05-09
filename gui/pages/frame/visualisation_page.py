@@ -82,6 +82,8 @@ class VisualisationFrame(tk.Frame):
                 page = MoindreCoutPage(self.content_frame)
             elif algo_name == "vogels Approximation":
                 page = VogelsApproximationPage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
             elif algo_name == "Bellman-Ford":
                 page = BellmanFordPage(self.content_frame)
             elif algo_name == "Ford-Fulkerson":

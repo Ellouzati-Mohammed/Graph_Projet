@@ -17,7 +17,7 @@ class MenuFrame(tk.Frame):
             ("moindre-Cout", self.controller.change_frame, "visualisation"),
             ("Kruskal", self.controller.change_frame, "visualisation"),
             ("Dijkstra", self.controller.change_frame, "input_dijkstra"),
-            ("vogels Approximation", self.controller.change_frame, "visualisation"),
+            ("vogels Approximation", self.controller.change_frame, "input_vogels"),
             ("Bellman-Ford", self.controller.change_frame, "visualisation"),
             ("Ford-Fulkerson", self.controller.change_frame, "visualisation"),
             ("NorthWest", self.controller.change_frame, "input_northwest"),
