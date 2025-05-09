@@ -76,6 +76,8 @@ class VisualisationFrame(tk.Frame):
                 page = DijkstraPage(self.content_frame)
             elif algo_name == "Simplex":
                 page = SimplexePage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
             elif algo_name == "moindre-Cout":
                 page = MoindreCoutPage(self.content_frame)
             elif algo_name == "vogels Approximation":
