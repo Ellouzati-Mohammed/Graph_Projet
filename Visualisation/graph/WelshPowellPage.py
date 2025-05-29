@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from algorithms.graph.Welsh_Powell import Welsh_Powell  # adapte l'import selon ton arborescence
 from data.graph_data import graph  # idem ici selon ta structure
+from tkinter import ttk
+
 class WelshPowellPage(tk.Frame):
     def __init__(self, parent, controller, graph_data):
         super().__init__(parent)
