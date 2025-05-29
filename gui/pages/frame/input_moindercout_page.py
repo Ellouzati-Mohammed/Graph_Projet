@@ -119,10 +119,10 @@ class InputMoinderCoutPage(tk.Frame):
                     data = list(reader)
                 
                 # Première ligne : offres
-                self.supply = [float(x) for x in data[0]]
+                self.supply = [float(x) for x in data[0] if x.strip() != '']
                 
                 # Deuxième ligne : demandes
-                self.demand = [float(x) for x in data[1]]
+                self.demand = [float(x) for x in data[1] if x.strip() != '']
                 
                 # Reste : matrice des coûts
                 self.costs = [[float(x) for x in row] for row in data[2:]]

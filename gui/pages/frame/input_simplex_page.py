@@ -56,9 +56,9 @@ class InputSimplexPage(tk.Frame):
         info_label.pack(padx=5, pady=5)
         
         # Variables pour stocker les données
-        self.supply = []
-        self.demand = []
-        self.costs = []
+        self.c = []
+        self.A = []
+        self.b = []
         
         # Frame pour les boutons de navigation
         nav_frame = ttk.Frame(self)
@@ -92,12 +92,12 @@ class InputSimplexPage(tk.Frame):
                 with open(file_path, 'r') as f:
                     data = json.load(f)
                 
-                if not all(key in data for key in ['supply', 'demand', 'costs']):
+                if not all(key in data for key in ['c', 'A', 'b']):
                     raise ValueError("Format JSON invalide")
                 
-                self.supply = data['supply']
-                self.demand = data['demand']
-                self.costs = data['costs']
+                self.c = data['c']
+                self.A = data['A']
+                self.b = data['b']
                 
                 self.validate_data()
                 messagebox.showinfo("Succès", "Données importées avec succès")
@@ -115,14 +115,19 @@ class InputSimplexPage(tk.Frame):
                     reader = csv.reader(csvfile)
                     data = list(reader)
                 
-                # Première ligne : offres
-                self.supply = [float(x) for x in data[0]]
+                if len(data) < 3:
+                    raise ValueError("Le fichier CSV doit contenir au moins 3 lignes : une pour c, au moins une pour A, et une pour b.")
+
                 
-                # Deuxième ligne : demandes
-                self.demand = [float(x) for x in data[1]]
-                
-                # Reste : matrice des coûts
-                self.costs = [[float(x) for x in row] for row in data[2:]]
+                # Ligne 1 : coefficients c
+                self.c = [float(x) for x in data[0]]
+
+                # Lignes 2 à n-1 : contraintes A
+                self.A = [[float(x) for x in row] for row in data[1:-1]]
+
+                # Dernière ligne : second membre b
+                self.b = [float(x) for x in data[-1]]
+
                 
                 self.validate_data()
                 messagebox.showinfo("Succès", "Données importées avec succès")
@@ -191,27 +196,24 @@ class InputSimplexPage(tk.Frame):
                   command=manual_window.destroy).pack(side="right", padx=5)
 
     def validate_data(self):
-        """Valide les données saisies"""
-        if not self.supply or not self.demand or not self.costs:
+        """Valide les données saisies pour le Simplexe"""
+        if not self.c or not self.A or not self.b:
             raise ValueError("Toutes les données sont requises")
-        
-        if len(self.costs) != len(self.supply):
-            raise ValueError("Le nombre de lignes de la matrice des coûts doit correspondre au nombre d'offres")
-        
-        if len(self.costs[0]) != len(self.demand):
-            raise ValueError("Le nombre de colonnes de la matrice des coûts doit correspondre au nombre de demandes")
-        
-        if abs(sum(self.supply) - sum(self.demand)) > 1e-10:
-            raise ValueError("La somme des offres doit être égale à la somme des demandes")
+
+        if len(self.A) != len(self.b):
+            raise ValueError("Le nombre de contraintes doit correspondre au nombre de valeurs du second membre.")
+
+        if any(len(row) != len(self.c) for row in self.A):
+            raise ValueError("Chaque contrainte doit avoir autant de coefficients que la fonction objectif.")
 
     def run_algorithm(self):
         """Lance l'algorithme avec les données saisies"""
         try:
             self.validate_data()
-            self.controller.show_visualisation("NorthWest", {
-                'supply': self.supply,
-                'demand': self.demand,
-                'costs': self.costs
-            })
+            self.controller.show_visualisation("Simplex", {
+            'c': self.c,
+            'A': self.A,
+            'b': self.b
+             })
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors du lancement de l'algorithme: {str(e)}") 
