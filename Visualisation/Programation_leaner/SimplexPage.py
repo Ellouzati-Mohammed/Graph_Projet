@@ -8,19 +8,26 @@ class SimplexePage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas_widget = None
-        self.visualiser_simplexe()
+        self.data = None
+        self.afficher_simplexe_depuis_data()  # Pour stocker les données reçues
 
-    def visualiser_simplexe(self):
-        c = [1.5,0.9 ]  # Max Z = 3x + 2y
-        A = [
-            [1, 0.5],
-            [0.2, 0.15],
-            [0, 1]
-        ]
-        b = [100, 25, 160]
-   
+    def set_data(self, data):
+        self.data = data
+        self.afficher_simplexe_depuis_data()
+
+    def afficher_simplexe_depuis_data(self):
+        if not self.data:
+            return
+        c = self.data['c']
+        A = self.data['A']
+        b = self.data['b']
+        from algorithms.pl.Simplex import simplexe_max
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
         success, message, x, z = simplexe_max(c, A, b)
-        print(message,x,z)
+        print(message, x, z)
 
         if self.canvas_widget:
             self.canvas_widget.destroy()
@@ -46,9 +53,10 @@ class SimplexePage(tk.Frame):
                          font=("Courier", 12), bg="#f0f0f0")
         label.pack(padx=10, pady=10)
 
+        # Optionnel : visualisation graphique si 2 variables
         if success and len(x) == 2:
             fig, ax = plt.subplots(figsize=(6, 6))
-            x_vals = np.linspace(0, 500, 800)  # initial large interval
+            x_vals = np.linspace(0, 500, 800)
 
             y_bounds = []
             max_x, max_y = 0, 0
@@ -74,7 +82,7 @@ class SimplexePage(tk.Frame):
             ax.plot(opt_x, opt_y, 'ro', markersize=10, label=f"Solution optimale ({opt_x:.2f}, {opt_y:.2f})")
 
             # Déterminer les limites dynamiquement
-            max_x = max(max_x, opt_x) * 1.2  # marge de 20%
+            max_x = max(max_x, opt_x) * 1.2
             max_y = max(max_y, opt_y) * 1.2
             ax.set_xlim(0, max(10, max_x))
             ax.set_ylim(0, max(10, max_y))

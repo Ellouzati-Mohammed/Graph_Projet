@@ -9,30 +9,36 @@ class VogelsApproximationPage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas_widget = None
-        self.visualiser_vogels()
+        self.data = None
+        self.afficher_vogel_depuis_data()
 
-    def visualiser_vogels(self):
-        # Load data from external file
-        costs = np.array(vogel_costs)
-        supply = np.array(vogel_supply)
-        demand = np.array(vogel_demand)
 
-        # Apply Vogel's Approximation Method
+
+    def set_data(self, data):
+        print("Données reçues dans vogelsPage:", data) 
+        self.data = data
+        self.afficher_vogel_depuis_data()
+
+    def afficher_vogel_depuis_data(self):
+        if not self.data:
+            return
+        costs = np.array(self.data['costs'])
+        supply = np.array(self.data['supply'])
+        demand = np.array(self.data['demand'])
+        from algorithms.pl.Vogels import vogels_approximation
+
         allocation, total_cost = vogels_approximation(costs, supply.copy(), demand.copy())
 
-        # Display results
         if self.canvas_widget:
             self.canvas_widget.destroy()
 
         main_frame = tk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Frame for textual results
         result_frame = tk.Frame(main_frame)
         result_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-        # Display results
-        result_text = "Résultats de l'Approximation de Vogel:\n\n"
+        result_text = "Résultats de la méthode de Vogel :\n\n"
         result_text += f"Coût total: {total_cost:.2f}\n\n"
         result_text += "Matrice d'allocation:\n"
         for row in allocation:
@@ -42,7 +48,6 @@ class VogelsApproximationPage(tk.Frame):
                         font=("Courier", 12), bg="#f0f0f0")
         label.pack(padx=10, pady=10)
 
-        # Graphical visualization
         fig, ax = plt.subplots(figsize=(8, 6))
         self.plot_transport(allocation, costs, ax)
         canvas = FigureCanvasTkAgg(fig, master=main_frame)

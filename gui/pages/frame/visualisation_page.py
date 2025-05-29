@@ -76,16 +76,25 @@ class VisualisationFrame(tk.Frame):
                 page = DijkstraPage(self.content_frame)
             elif algo_name == "Simplex":
                 page = SimplexePage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
             elif algo_name == "moindre-Cout":
                 page = MoindreCoutPage(self.content_frame)
+                if self.current_data:
+                    print("Transmission des données à MoindreCoutPage")
+                    page.set_data(self.current_data)
             elif algo_name == "vogels Approximation":
                 page = VogelsApproximationPage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
             elif algo_name == "Bellman-Ford":
                 page = BellmanFordPage(self.content_frame)
             elif algo_name == "Ford-Fulkerson":
                 page = FordFulkersonPage(self.content_frame)
             elif algo_name == "NorthWest":
                 page = NorthwestPage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
             else:
                 raise ValueError(f"Algorithme inconnu: {algo_name}")
 
