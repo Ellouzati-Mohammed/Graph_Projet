@@ -11,7 +11,23 @@ class KruskalPage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas_widget = None
+        self.sommets = []
+        self.matrice = []
+        self.edges = []
+        self.mst_edges = []
+        
+    def set_data(self, data):
+        """Reçoit les données du graphe et de l'arbre couvrant minimal"""
+        self.sommets = data.get('sommets', [])
+        self.matrice = data.get('matrice', [])
+        self.edges = data.get('edges', [])
+        self.mst_edges = data.get('mst_edges', [])
         self.visualiser_kruskal_graphe()
+        
+    def visualiser_kruskal_graphe(self):
+        """Visualise le graphe avec l'arbre couvrant minimal"""
+        if not self.sommets or not self.matrice:
+            return
 
     def visualiser_kruskal_graphe(self):
         graphe_data = graph.get_graphe()

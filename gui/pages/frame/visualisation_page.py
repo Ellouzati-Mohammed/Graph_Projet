@@ -3,9 +3,9 @@ from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
+from Visualisation.graph import DjikstraPage
 from data.graph_data import graph
 from Visualisation.graph.WelshPowellPage import WelshPowellPage
-from Visualisation.graph.KruskalPage import KruskalPage
 from Visualisation.graph.DjikstraPage import DijkstraPage
 from Visualisation.Programation_leaner.SimplexPage import SimplexePage
 from Visualisation.Programation_leaner.MoindreCoutPage import MoindreCoutPage
@@ -14,7 +14,7 @@ from Visualisation.Programation_leaner.NorthWestPage import NorthwestPage
 from Visualisation.graph.BellmanFordPage import BellmanFordPage
 from Visualisation.graph.FordFulkersonPage import FordFulkersonPage
 
-
+from Visualisation.graph.KruskalPage import KruskalPage
 class VisualisationFrame(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -70,12 +70,15 @@ class VisualisationFrame(tk.Frame):
         try:
             if algo_name == "Welsh-Powell":
                 page = WelshPowellPage(self.content_frame)
-            elif algo_name == "Kruskal":
-                page = KruskalPage(self.content_frame)
-            elif algo_name == "Djikstra":
+            elif algo_name == "Dijkstra":
                 page = DijkstraPage(self.content_frame)
             elif algo_name == "Simplex":
                 page = SimplexePage(self.content_frame)
+                if self.current_data:
+                    page.set_data(self.current_data)
+            elif algo_name == "Kruskal":
+                from Visualisation.graph.KruskalPage import KruskalPage
+                page = KruskalPage(self.content_frame)
                 if self.current_data:
                     page.set_data(self.current_data)
             elif algo_name == "moindre-Cout":
@@ -87,10 +90,10 @@ class VisualisationFrame(tk.Frame):
                 page = VogelsApproximationPage(self.content_frame)
                 if self.current_data:
                     page.set_data(self.current_data)
-            elif algo_name == "Bellman-Ford":
-                page = BellmanFordPage(self.content_frame)
-            elif algo_name == "Ford-Fulkerson":
-                page = FordFulkersonPage(self.content_frame)
+            elif algo_name in ["Bellman-Ford", "BellmanFord"]:
+                page = BellmanFordPage(self.content_frame, self.current_data)
+            elif algo_name in "Ford-Fulkerson":
+                page = FordFulkersonPage(self.content_frame, self.current_data)
             elif algo_name == "NorthWest":
                 page = NorthwestPage(self.content_frame)
                 if self.current_data:

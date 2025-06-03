@@ -12,16 +12,16 @@ class MenuFrame(tk.Frame):
         self.controller = controller
 
         buttons = [
-            ("Welsh-Powell", self.controller.change_frame, "input_WelshPowell"),
-            ("Simplex", self.controller.change_frame, "input_simplex"),
-            ("moindre-Cout", self.controller.change_frame, "input_moindercout"),
-            ("Kruskal", self.controller.change_frame, "visualisation"),
-            ("Dijkstra", self.controller.change_frame, "input_dijkstra"),
-            ("vogels Approximation", self.controller.change_frame, "input_vogels"),
-            ("Bellman-Ford", self.controller.change_frame, "visualisation"),
-            ("Ford-Fulkerson", self.controller.change_frame, "visualisation"),
-            ("NorthWest", self.controller.change_frame, "input_northwest"),
-        ]
+    ("Welsh-Powell", self.controller.change_frame, "input_WelshPowell"),
+    ("Simplex", self.controller.change_frame, "input_simplex"),
+    ("moindre-Cout", self.controller.change_frame, "input_moindercout"),
+    ("Kruskal", self.controller.change_frame, "input_kruskal"),  # Changé de "input_kruskal" à "inputKruskal"
+    ("Dijkstra", self.controller.change_frame, "input_dijkstra"),
+    ("vogels Approximation", self.controller.change_frame, "input_vogels"),
+    ("Bellman-Ford", self.controller.change_frame, "input_bellmanFord"),
+    ("Ford-Fulkerson", self.controller.change_frame, "input_fordFulkerson"),
+    ("NorthWest", self.controller.change_frame, "input_northwest"),
+]
 
         for index, (label, command, msg) in enumerate(buttons):
             row = index // 3

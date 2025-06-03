@@ -6,24 +6,29 @@ from algorithms.graph.BellmanFord import bellmanFord
 from data.graph_data import graph 
 
 class BellmanFordPage(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, data=None):
         super().__init__(parent)
         self.canvas_widget = None
+        self.data = data
         self.visualiser_bellman_ford_graphe()
 
     def visualiser_bellman_ford_graphe(self):
-        graphe_data = graph.get_graphe()
-        sommets = graphe_data['sommets']
-        matrice_adjacence = graphe_data['matrice']
-        
-        # Sélection des nœuds de départ et d'arrivée
-        debut = sommets[0]
-        depart = sommets[-1]
+        if self.data:
+            sommets = self.data['sommets']
+            matrice_adjacence = self.data['matrice']
+            debut = self.data['start']
+            depart = self.data['end']
+        else:
+            graphe_data = graph.get_graphe()
+            sommets = graphe_data['sommets']
+            matrice_adjacence = graphe_data['matrice']
+            debut = sommets[0]
+            depart = sommets[-1]
 
         # Calcul du chemin avec Bellman-Ford
         try:
             chemin = bellmanFord(sommets, matrice_adjacence, debut, depart)
-        except ValueError as e:
+        except Exception as e:
             print(f"Erreur: {e}")
             chemin = []
 
@@ -35,7 +40,7 @@ class BellmanFordPage(tk.Frame):
         for i in range(len(sommets)):
             for j in range(len(sommets)):
                 poids = matrice_adjacence[i][j]
-                if poids > 0:
+                if poids != 0:
                     G.add_edge(sommets[i], sommets[j], weight=poids)
 
         # Nettoyage du canvas précédent
