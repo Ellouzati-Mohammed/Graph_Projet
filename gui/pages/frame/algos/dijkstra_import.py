@@ -105,24 +105,27 @@ class DijkstraImporter:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 reader = csv.reader(f)
-                headers = next(reader)  # Première ligne = noms des sommets
-                sommets = headers[1:]  # Ignorer la première colonne vide
-                
-                matrice = []
-                for row in reader:
-                    # Convertir les valeurs en nombres
-                    matrice.append([float(val) if val != '' else float('inf') for val in row[1:]])
-                
+                rows = list(reader)
+                if not rows or len(rows) < 2:
+                    raise ValueError("Fichier CSV vide ou incomplet")
+                # Si la première case est vide, on a une colonne d'index
+                if rows[0][0] == '':
+                    sommets = [s.strip() for s in rows[0][1:] if s.strip()]
+                    matrice = []
+                    for row in rows[1:]:
+                        matrice.append([float(val) if val.strip() != '' else float('inf') for val in row[1:]])
+                else:
+                    sommets = [s.strip() for s in rows[0] if s.strip()]
+                    matrice = []
+                    for row in rows[1:]:
+                        matrice.append([float(val) if val.strip() != '' else float('inf') for val in row])
                 data = {
                     "sommets": sommets,
                     "matrice": matrice
                 }
-                
                 if not self.validate_data(data):
                     return
-                    
                 self.algo_instance.set_graph_data(sommets, matrice)
-                
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de l'importation: {str(e)}")
     
@@ -237,4 +240,4 @@ class DijkstraImporter:
             
         except Exception as e:
             messagebox.showerror("Erreur de validation", str(e))
-            return False 
+            return False

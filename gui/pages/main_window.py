@@ -4,6 +4,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
 from assets.styles.AlgoButton import button_style
+from gui.pages.frame.Input_Kruskal_page import InputKruskal
 from gui.pages.frame.menu_page import MenuFrame
 from gui.pages.frame.visualisation_page import VisualisationFrame
 from gui.pages.frame.input_dijkstra_page import InputDijkstraPage
@@ -12,6 +13,8 @@ from gui.pages.frame.input_simplex_page import InputSimplexPage
 from gui.pages.frame.input_vogels_page import InputVogelsPage
 from gui.pages.frame.input_moindercout_page import InputMoinderCoutPage
 from gui.pages.frame.input_WelshPowell import InputWelshPowell
+from gui.pages.frame.Input_FordFulkerson_Page import InputFordFulkersonPage 
+from gui.pages.frame.input_BellmanFord_page import InputBellmanFordPage
 
 class MainWindow:
     def __init__(self, master):
@@ -35,7 +38,10 @@ class MainWindow:
         self.frames["input_simplex"] = InputSimplexPage(self.container, self)
         self.frames["input_vogels"] = InputVogelsPage(self.container, self)
         self.frames["input_moindercout"] = InputMoinderCoutPage(self.container, self)
+        self.frames["input_kruskal"] = InputKruskal(self.container, self)  #
         self.frames["input_WelshPowell"] = InputWelshPowell(self.container, self)
+        self.frames["input_fordFulkerson"] = InputFordFulkersonPage(self.container, self)
+        self.frames["input_bellmanFord"] = InputBellmanFordPage(self.container, self)
         self.frames["visualisation"] = VisualisationFrame(self.container, self)
 
         # Par défaut, afficher menu
@@ -56,8 +62,8 @@ class MainWindow:
     def change_frame(self, frame_name, algo_name=None):
         """Change de frame et gère les cas spéciaux"""
         print(f"Changement vers {frame_name} avec algo {algo_name}")  # Debug
-        
-        if frame_name in ["input_dijkstra", "input_northwest", "input_simplex", "input_vogels", "input_moindercout","input_WelshPowell"]:
+
+        if frame_name in ["input_dijkstra", "input_northwest", "input_simplex", "input_vogels", "input_moindercout","input_WelshPowell","input_kruskal","input_fordFulkerson","input_bellmanFord"]:
             self.show_frame(frame_name)
             
         elif frame_name == "menu":
@@ -95,6 +101,9 @@ class MainWindow:
         visualisation_frame.set_algorithm(algo_name)
         visualisation_frame.set_data(data)
     
+    # Alias pour compatibilité avec l'appel 'show_visualization' (US spelling)
+    show_visualization = show_visualisation
+    
     def on_closing(self):
         print("La fenêtre est en train de se fermer.")
-        self.master.quit() 
+        self.master.quit()
