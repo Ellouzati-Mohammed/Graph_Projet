@@ -66,8 +66,8 @@ class MainWindow:
         self.text_color = "#333333"
         self.highlight_color = "#d9e6f2"
 
-        master.title("Algorithms Visualizer")
-        master.geometry("1000x700")
+        master.title("Visualisateur d'Algorithmes")
+        master.geometry("1000x800")
         master.configure(bg=self.bg_color)
 
         # Configure styles
@@ -189,12 +189,12 @@ class MainWindow:
         title_frame.pack(side="left", expand=True)
 
         self.title_label = ttk.Label(
-            title_frame, text="Algorithms Visualizer", style="Title.TLabel"
+            title_frame, text="Visualisateur d'Algorithmes", style="Title.TLabel"
         )
         self.title_label.pack()
 
         self.subtitle_label = ttk.Label(
-            title_frame, text="PL & Graph Algorithms", style="Subtitle.TLabel"
+            title_frame, text="PL & Algorithmes de Graphes", style="Subtitle.TLabel"
         )
         self.subtitle_label.pack()
 
@@ -227,10 +227,14 @@ class MainWindow:
 
         # PL Algorithms
         pl_algorithms = [
-            ("Simplex", "input_simplex", "Linear programming method for optimization"),
-            ("Moindre Cout", "input_moindercout", "Minimum cost method"),
-            ("Vogel's Approximation", "input_vogels", "Approximation method"),
-            ("NorthWest", "input_northwest", "Northwest corner method"),
+            (
+                "Simplex",
+                "input_simplex",
+                "Méthode de programmation linéaire pour l'optimisation",
+            ),
+            ("Moindre Coût", "input_moindercout", "Méthode du coût minimal"),
+            ("Approximation de Vogel", "input_vogels", "Méthode d'approximation"),
+            ("Coin Nord-Ouest", "input_northwest", "Méthode du coin nord-ouest"),
         ]
 
         for algo, frame, tooltip in pl_algorithms:
@@ -248,21 +252,21 @@ class MainWindow:
         graph_frame.pack(side="right", fill="both", expand=True, padx=10)
 
         graph_title = ttk.Label(
-            graph_frame, text="Graph Algorithms", style="SectionTitle.TLabel"
+            graph_frame, text="Algorithmes de Graphes", style="SectionTitle.TLabel"
         )
         graph_title.pack(anchor="w")
 
         # Graph Algorithms
         graph_algorithms = [
-            ("Welsh-Powell", "input_WelshPowell", "Graph coloring algorithm"),
-            ("Kruskal", "input_kruskal", "Minimum spanning tree algorithm"),
-            ("Dijkstra", "input_dijkstra", "Shortest path algorithm"),
+            ("Welsh-Powell", "input_WelshPowell", "Algorithme de coloration de graphe"),
+            ("Kruskal", "input_kruskal", "Algorithme d'arbre couvrant minimal"),
+            ("Dijkstra", "input_dijkstra", "Algorithme de plus court chemin"),
             (
                 "Bellman-Ford",
                 "input_bellmanFord",
-                "Shortest path with negative weights",
+                "Plus court chemin avec poids négatifs",
             ),
-            ("Ford-Fulkerson", "input_fordFulkerson", "Maximum flow algorithm"),
+            ("Ford-Fulkerson", "input_fordFulkerson", "Algorithme de flot maximum"),
         ]
 
         for algo, frame, tooltip in graph_algorithms:
@@ -305,7 +309,7 @@ class MainWindow:
         # Left aligned supervisor
         supervisor_label = ttk.Label(
             footer_frame,
-            text="Encadré par:\nProf.Something",
+            text="Encadré par:\n    Prof.Something",
             style="Footer.TLabel",
             justify=tk.LEFT,
         )
@@ -314,7 +318,7 @@ class MainWindow:
         # Right aligned team members
         team_label = ttk.Label(
             footer_frame,
-            text="Réalisé par:\nSalim LAGHRIB\nMohammed ELLOUZATI\nYassine EL AOUNI",
+            text="Réalisé par:\n    Salim LAGHRIB\n    Mohammed ELLOUZATI\n    Yassine EL AOUNI",
             style="Footer.TLabel",
             justify=tk.LEFT,
         )
@@ -356,7 +360,7 @@ class MainWindow:
         """Show visualization in a new window"""
         new_window = tk.Toplevel(self.master)
         new_window.title(f"Visualisation - {algo_name}")
-        new_window.geometry("800x600")
+        new_window.geometry("1000x700")
 
         # Configure grid
         new_window.grid_rowconfigure(0, weight=1)
@@ -373,7 +377,7 @@ class MainWindow:
 
     def on_closing(self):
         """Handle window closing with confirmation"""
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        if messagebox.askokcancel("Quitter", "Voulez-vous vraiment quitter ?"):
             self.master.quit()
 
 
