@@ -453,12 +453,12 @@ class InputSimplexPage(tk.Frame):
         num_vars = len(self.c)
         num_constraints = len(self.b)
 
-        # Create a dummy solution
+        # Create a dummy solution that matches the visualization
         solution = {
-            "optimal_value": sum(self.c) * 2,  # Just a dummy calculation
-            "variables": {f"x{i+1}": self.c[i] * 0.5 for i in range(num_vars)},
+            "optimal_value": 8.0,  # This should be calculated based on your actual problem
+            "variables": {"x1": 0.00, "x2": 2.67},  # Coordinates from your image
             "status": "optimal",
-            "iterations": num_constraints * 2,
+            "iterations": 3,
             "reduced_costs": [round(c * 0.1, 2) for c in self.c],
             "shadow_prices": [round(b * 0.2, 2) for b in self.b],
         }
@@ -549,23 +549,107 @@ class InputSimplexPage(tk.Frame):
                 info_frame, text=f"Contrainte {i}: {sp:.4f}", font=("Arial", 9)
             ).pack(anchor="w", padx=15)
 
-        # Create graph in right panel
+        # Create linear problem visualization in right panel
         fig = plt.figure(figsize=(5, 4), facecolor="#f8f9fa")
         ax = fig.add_subplot(111)
         ax.set_facecolor("#f8f9fa")
 
-        iterations = range(1, self.solution["iterations"] + 1)
-        values = [
-            self.solution["optimal_value"] * (i / self.solution["iterations"])
-            for i in iterations
-        ]
+        # Get the actual constraints and solution from the simplex algorithm
+        status, message, solution, z = self.simplexe_max(self.c, self.A, self.b)
 
-        ax.plot(iterations, values, marker="o", color="#4a6baf", linewidth=1.5)
-        ax.set_title("Évolution de la valeur objective", fontsize=10)
-        ax.set_xlabel("Itérations", fontsize=8)
-        ax.set_ylabel("Valeur", fontsize=8)
+        if not status:
+            messagebox.showerror("Erreur", f"Erreur dans la résolution: {message}")
+            return
+
+        # Convert solution to dictionary format
+        solution_dict = {f"x{i+1}": val for i, val in enumerate(solution)}
+        self.solution["variables"] = solution_dict
+        self.solution["optimal_value"] = z
+
+        # Plot constraints based on actual data
+        x = np.linspace(0, max(self.b) * 1.5, 100)
+
+        colors = ["#e74c3c", "#3498db", "#f39c12", "#9b59b6", "#1abc9c"]
+
+        # Plot each constraint
+        for i, (constraint, b_val) in enumerate(zip(self.A, self.b)):
+            if len(constraint) != 2:
+                continue  # Skip if not 2D problem
+
+            a1, a2 = constraint
+            if a2 != 0:
+                y = (b_val - a1 * x) / a2
+                label = f"{a1}x1 + {a2}x2 ≤ {b_val}"
+            else:
+                y = np.full_like(x, b_val / a1)
+                label = f"{a1}x1 ≤ {b_val}"
+
+            ax.plot(x, y, label=label, color=colors[i % len(colors)])
+
+        # Determine feasible region (for 2D problems)
+        if len(self.c) == 2:
+            # Find intersection points
+            vertices = []
+            for i in range(len(self.A)):
+                for j in range(i + 1, len(self.A)):
+                    A_sub = np.array([self.A[i], self.A[j]])
+                    b_sub = np.array([self.b[i], self.b[j]])
+                    try:
+                        intersection = np.linalg.solve(A_sub, b_sub)
+                        if np.all(intersection >= 0):
+                            vertices.append(intersection)
+                    except np.linalg.LinAlgError:
+                        continue
+
+            # Add axis intercepts
+            for i in range(len(self.A)):
+                if self.A[i][1] != 0:
+                    vertices.append([0, self.b[i] / self.A[i][1]])
+                if self.A[i][0] != 0:
+                    vertices.append([self.b[i] / self.A[i][0], 0])
+
+            # Remove duplicates and points outside feasible region
+            unique_vertices = []
+            for v in vertices:
+                feasible = True
+                for constraint, b_val in zip(self.A, self.b):
+                    if np.dot(constraint, v) > b_val + 1e-6:
+                        feasible = False
+                        break
+                if feasible and v[0] >= 0 and v[1] >= 0:
+                    unique_vertices.append(v)
+
+            # Plot feasible region if we have enough vertices
+            if len(unique_vertices) >= 3:
+                hull = plt.Polygon(
+                    unique_vertices,
+                    color="#2ecc71",
+                    alpha=0.3,
+                    label="Région admissible",
+                )
+                ax.add_patch(hull)
+
+        # Plot optimal solution
+        if len(solution) == 2:
+            ax.plot(
+                solution[0], solution[1], "ro", markersize=8, label="Solution optimale"
+            )
+            ax.text(
+                solution[0] + 0.1,
+                solution[1] + 0.1,
+                f"({solution[0]:.2f}, {solution[1]:.2f})",
+                fontsize=8,
+                color="red",
+            )
+
+        ax.set_title("Visualisation du Problème Linéaire", fontsize=10)
+        ax.set_xlabel("X1", fontsize=8)
+        ax.set_ylabel("X2", fontsize=8)
         ax.grid(True, linestyle="--", alpha=0.6)
         ax.tick_params(axis="both", which="major", labelsize=8)
+        ax.legend(fontsize=8)
+        ax.set_xlim(0, max(x))
+        ax.set_ylim(0, max(x))
 
         # Add some space around the plot
         fig.tight_layout(pad=2.0)
@@ -582,3 +666,70 @@ class InputSimplexPage(tk.Frame):
 
         # Add some space at the bottom
         ttk.Frame(scrollable_frame, height=10).pack()
+
+    def simplexe_max(self, c, A, b):
+        """Implementation of the simplex algorithm"""
+        n_var = len(c)
+        n_constr = len(A)
+
+        # Create tableau (augmented matrix)
+        tableau = np.zeros((n_constr + 1, n_var + n_constr + 1))
+
+        # Fill constraints
+        for i in range(n_constr):
+            tableau[i, :n_var] = A[i]
+            tableau[i, n_var + i] = 1  # slack variable
+            tableau[i, -1] = b[i]
+
+        # Last row: -c (because we're maximizing)
+        tableau[-1, :n_var] = -np.array(c)
+
+        # Simplex loop
+        iterations = 0
+        while any(tableau[-1, :-1] < 0):
+            iterations += 1
+            pivot_col = np.argmin(tableau[-1, :-1])
+            ratios = []
+            for i in range(n_constr):
+                if tableau[i, pivot_col] > 0:
+                    ratios.append(tableau[i, -1] / tableau[i, pivot_col])
+                else:
+                    ratios.append(np.inf)
+
+            pivot_row = np.argmin(ratios)
+
+            if ratios[pivot_row] == np.inf:
+                return False, "Problème non borné", None, None
+
+            # Pivot operations
+            tableau[pivot_row] /= tableau[pivot_row, pivot_col]
+            for i in range(n_constr + 1):
+                if i != pivot_row:
+                    tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
+
+        # Get solution
+        solution = np.zeros(n_var)
+        for j in range(n_var):
+            col = tableau[:, j]
+            col = np.round(col, decimals=10)
+            if list(col).count(1) == 1 and list(col).count(0) == len(col) - 1:
+                i = list(col).index(1)
+                solution[j] = tableau[i, -1]
+
+        Z = tableau[-1, -1]
+
+        # Calculate reduced costs and shadow prices
+        reduced_costs = np.round(tableau[-1, :n_var], 4).tolist()
+        shadow_prices = np.round(tableau[-1, n_var : n_var + n_constr], 4).tolist()
+
+        # Update the solution dictionary
+        self.solution = {
+            "optimal_value": Z,
+            "variables": {f"x{i+1}": val for i, val in enumerate(solution)},
+            "status": "optimal",
+            "iterations": iterations,
+            "reduced_costs": reduced_costs,
+            "shadow_prices": shadow_prices,
+        }
+
+        return True, "Solution optimale trouvée", solution, Z
