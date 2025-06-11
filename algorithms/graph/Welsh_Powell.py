@@ -1,21 +1,24 @@
 import random
 
 def Welsh_Powell(sommets, matrice_adjacence):
-    degree_each_Vertex = []
-    colored_sommets = []  # Liste de tuples (index, couleur)
-
+    n = len(sommets)
     # Étape 1 : Calculer le degré de chaque sommet
-    for sommet_index, ligne in enumerate(matrice_adjacence):
-        degre = sum(1 for arc in ligne if arc > 0)
-        degree_each_Vertex.append((sommet_index, degre))
-
-    # Étape 2 : Trier les sommets par degré décroissant
-    degree_each_Vertex.sort(key=lambda item: item[1], reverse=True)
-
+    degrees = []
+    for i in range(n):
+        deg = sum(1 for j in range(n) if matrice_adjacence[i][j] > 0)
+        degrees.append((i, deg))
+    
+    # Étape 2 : Trier par degré décroissant
+    degrees.sort(key=lambda x: x[1], reverse=True)
+    ordre_sommets = [idx for idx, _ in degrees]  # Ordre des indices
+    
+    # Tableau de couleurs (None = non coloré)
+    couleurs = [None] * n
     used_colors = []
-
-    while len(colored_sommets) < len(sommets):
-        # Générer une couleur unique
+    
+    # Tant qu'il reste des sommets non colorés
+    while any(c is None for c in couleurs):
+        # Générer une nouvelle couleur aléatoire non utilisée
         current_color = (
             random.randint(0, 255) / 255,
             random.randint(0, 255) / 255,
@@ -27,25 +30,26 @@ def Welsh_Powell(sommets, matrice_adjacence):
                 random.randint(0, 255) / 255,
                 random.randint(0, 255) / 255
             )
-        used_colors.append(current_color)  # ✅ important
-
-        colored_this_round = []
-
-        for sommet_index, _ in degree_each_Vertex:
-            if any(s[0] == sommet_index for s in colored_sommets):
+        used_colors.append(current_color)
+        
+        # Parcourir tous les sommets dans l'ordre trié
+        for idx in ordre_sommets:
+            # Passer les sommets déjà colorés
+            if couleurs[idx] is not None:
                 continue
-
-            # Vérifier les conflits de couleur avec les voisins
-            conflict = any(
-                is_adjacent and (index, current_color) in colored_sommets
-                for index, is_adjacent in enumerate(matrice_adjacence[sommet_index])
-            )
-
-            if not conflict:
-                colored_sommets.append((sommet_index, current_color))
-                colored_this_round.append(sommet_index)
-
-        # Mise à jour : supprimer les sommets déjà colorés
-        degree_each_Vertex = [v for v in degree_each_Vertex if v[0] not in colored_this_round]
-
+                
+            # Vérifier les conflits avec les voisins
+            conflit = False
+            for voisin in range(n):
+                # Si les sommets sont adjacents ET le voisin a la couleur courante
+                if matrice_adjacence[idx][voisin] > 0 and couleurs[voisin] == current_color:
+                    conflit = True
+                    break
+                    
+            # Si pas de conflit, attribuer la couleur
+            if not conflit:
+                couleurs[idx] = current_color
+                
+    # Formatage du résultat comme dans la version originale
+    colored_sommets = [(i, couleurs[i]) for i in range(n)]
     return colored_sommets
