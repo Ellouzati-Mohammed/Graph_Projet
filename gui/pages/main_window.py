@@ -309,7 +309,7 @@ class MainWindow:
         # Left aligned supervisor
         supervisor_label = ttk.Label(
             footer_frame,
-            text="Encadré par:\n    Prof.Something",
+            text="Encadré par:\n    Prof. Qaraai Youssef",
             style="Footer.TLabel",
             justify=tk.LEFT,
         )
@@ -318,7 +318,7 @@ class MainWindow:
         # Right aligned team members
         team_label = ttk.Label(
             footer_frame,
-            text="Réalisé par:\n    Salim LAGHRIB\n    Mohammed ELLOUZATI\n    Yassine EL AOUNI",
+            text="Réalisé par:\n    Laghrib Salim\n    Ellouzati Mohammed\n    El aouni Yassine",
             style="Footer.TLabel",
             justify=tk.LEFT,
         )
