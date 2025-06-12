@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
-
+from Visualisation.Programation_leaner.vogelsPage import VogelsApproximationPage
 
 class InputVogelsPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -419,23 +419,43 @@ class InputVogelsPage(tk.Frame):
         """Lance l'algorithme avec les données saisies"""
         try:
             self.validate_data()
-            self.update_status("Exécution de l'algorithme de Vogel...")
+            self.update_status("Exécution de l'algorithme du Moindre Coût...")
 
-            # Remove placeholder
+            # Supprimer le placeholder
             self.placeholder.pack_forget()
 
-            # Display the data in a table
-            self.display_transport_table()
+            # Créer les données pour VogelsApproximationPage
+            data = {
+                'supply': self.supply,
+                'demand': self.demand,
+                'costs': self.costs
+            }
 
-            # Here you would call your actual Vogel algorithm implementation
-            # For now we'll just display the input data
-            self.update_status("Algorithme de Vogel exécuté avec succès")
+            # Afficher les résultats avec VogelsApproximationPage
+            self.display_vogels_results(data)
+
+            self.update_status("Algorithme du Moindre Coût exécuté avec succès")
 
         except Exception as e:
             messagebox.showerror(
                 "Erreur", f"Erreur lors du lancement de l'algorithme: {str(e)}"
             )
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_vogels_results(self, data):
+        """Affiche les résultats avec la classe VogelsApproximationPage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour VogelsApproximationPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher VogelsApproximationPage dans le conteneur
+        vogels_page = VogelsApproximationPage(container)
+        vogels_page.set_data(data)
+        vogels_page.pack(fill="both", expand=True)
 
     def display_transport_table(self):
         """Display the transport problem data in a table format with visual representation"""

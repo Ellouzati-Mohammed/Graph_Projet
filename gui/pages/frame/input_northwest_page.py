@@ -5,7 +5,7 @@ import csv
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-
+from Visualisation.Programation_leaner.NorthWestPage import NorthwestPage
 
 class InputNorthwestPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -420,14 +420,19 @@ class InputNorthwestPage(tk.Frame):
             self.validate_data()
             self.update_status("Exécution de l'algorithme du Coin Nord-Ouest...")
 
-            # Remove placeholder
+            # Supprimer le placeholder
             self.placeholder.pack_forget()
 
-            # Display the data in a table
-            self.display_transport_table()
+            # Créer les données pour NorthwestPage
+            data = {
+                'supply': self.supply,
+                'demand': self.demand,
+                'costs': self.costs
+            }
 
-            # Here you would call your actual Northwest Corner algorithm implementation
-            # For now we'll just display the input data
+            # Afficher les résultats avec NorthwestPage
+            self.display_northwest_results(data)
+
             self.update_status("Algorithme du Coin Nord-Ouest exécuté avec succès")
 
         except Exception as e:
@@ -435,6 +440,22 @@ class InputNorthwestPage(tk.Frame):
                 "Erreur", f"Erreur lors du lancement de l'algorithme: {str(e)}"
             )
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_northwest_results(self, data):
+       
+        """Affiche les résultats avec la classe NorthwestPage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour NorthwestPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher NorthwestPage dans le conteneur
+        northwest_page = NorthwestPage(container)
+        northwest_page.set_data(data)
+        northwest_page.pack(fill="both", expand=True)
 
     def display_transport_table(self):
         """Display the transport problem data in a table format with visual representation"""

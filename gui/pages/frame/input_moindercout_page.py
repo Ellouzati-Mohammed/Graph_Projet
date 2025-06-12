@@ -5,7 +5,7 @@ import csv
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-
+from Visualisation.Programation_leaner.MoindreCoutPage import MoindreCoutPage
 
 class InputMoinderCoutPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -422,14 +422,19 @@ class InputMoinderCoutPage(tk.Frame):
             self.validate_data()
             self.update_status("Exécution de l'algorithme du Moindre Coût...")
 
-            # Remove placeholder
+            # Supprimer le placeholder
             self.placeholder.pack_forget()
 
-            # Display the data in a table
-            self.display_transport_table()
+            # Créer les données pour MoindreCoutPage
+            data = {
+                'supply': self.supply,
+                'demand': self.demand,
+                'costs': self.costs
+            }
 
-            # Here you would call your actual Least Cost algorithm implementation
-            # For now we'll just display the input data
+            # Afficher les résultats avec MoindreCoutPage
+            self.display_moindre_cout_results(data)
+
             self.update_status("Algorithme du Moindre Coût exécuté avec succès")
 
         except Exception as e:
@@ -437,6 +442,21 @@ class InputMoinderCoutPage(tk.Frame):
                 "Erreur", f"Erreur lors du lancement de l'algorithme: {str(e)}"
             )
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_moindre_cout_results(self, data):
+        """Affiche les résultats avec la classe MoindreCoutPage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour MoindreCoutPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher MoindreCoutPage dans le conteneur
+        moindre_cout_page = MoindreCoutPage(container)
+        moindre_cout_page.set_data(data)
+        moindre_cout_page.pack(fill="both", expand=True)
 
     def display_transport_table(self):
         """Display the transport problem data in a table format with visual representation"""

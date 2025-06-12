@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
-
+from Visualisation.Programation_leaner.SimplexPage import SimplexePage
 
 class InputSimplexPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -433,11 +433,18 @@ class InputSimplexPage(tk.Frame):
             self.validate_data()
             self.update_status("Exécution de l'algorithme du Simplexe...")
 
-            # Simulate solving the problem (replace with actual simplex implementation)
-            self.solution = self.simulate_simplex()
+            # Supprimer le placeholder
+            self.placeholder.pack_forget()
 
-            # Display results
-            self.display_results()
+            # Créer les données pour SimplexePage
+            data = {
+                'c': self.c,
+                'A': self.A,
+                'b': self.b
+            }
+
+            # Afficher les résultats avec SimplexePage
+            self.display_simplexe_results(data)
 
             self.update_status("Algorithme du Simplexe exécuté avec succès")
 
@@ -446,6 +453,21 @@ class InputSimplexPage(tk.Frame):
                 "Erreur", f"Erreur lors du lancement de l'algorithme: {str(e)}"
             )
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_simplexe_results(self, data):
+        """Affiche les résultats avec la classe SimplexePage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour SimplexePage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher SimplexePage dans le conteneur
+        simplex_page = SimplexePage(container)
+        simplex_page.set_data(data)
+        simplex_page.pack(fill="both", expand=True)
 
     def simulate_simplex(self):
         """Simulate simplex algorithm (replace with actual implementation)"""
