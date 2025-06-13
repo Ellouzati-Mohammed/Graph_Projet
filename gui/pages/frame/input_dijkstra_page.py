@@ -7,7 +7,7 @@ import json
 import matplotlib.pyplot as plt
 import networkx as nx
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from Visualisation.graph.DjikstraPage import DijkstraPage
 
 class DijkstraImporter:
     def __init__(self, parent_frame, controller):
@@ -313,17 +313,32 @@ class InputDijkstraPage(tk.Frame):
             self.start_node.set(sommets[0])
             self.end_node.set(sommets[1])
 
-        # Update graph info in results panel
+        # Update graph info in results panel (sans visualisation du graphe)
         graph_info = (
             f"- Nombre de nœuds: {len(sommets)}\n"
             f"- Nombre d'arêtes: {sum(1 for row in matrice for x in row if x != 0)}\n"
             f"- Sommets: {', '.join(sommets)}"
         )
 
-        self.update_results_panel(
-            graph_info=graph_info,
-            result_text="Données du graphe chargées. Prêt à exécuter l'algorithme.",
+        # Affiche juste les infos, pas de visualisation
+        for widget in self.graph_info_frame.winfo_children():
+            widget.destroy()
+        info_label = ttk.Label(
+            self.graph_info_frame,
+            text=graph_info,
+            justify="left",
         )
+        info_label.pack(padx=2, pady=2, anchor="w")
+
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        default_label = ttk.Label(
+            self.results_frame,
+            text="Données du graphe chargées. Prêt à exécuter l'algorithme.",
+            font=("Arial", 10, "italic"),
+            foreground="#7f8c8d",
+        )
+        default_label.pack(pady=50)
 
         messagebox.showinfo(
             "Données chargées",
@@ -333,7 +348,7 @@ class InputDijkstraPage(tk.Frame):
         )
 
     def run_algorithm(self):
-        """Lance l'algorithme avec les données importées"""
+        """Lance l'algorithme de Dijkstra et visualise le résultat avec DijkstraPage"""
         if not self.sommets or not self.matrice:
             messagebox.showwarning(
                 "Attention", "Veuillez d'abord importer ou saisir les données du graphe"
@@ -355,39 +370,40 @@ class InputDijkstraPage(tk.Frame):
             )
             return
 
-        # Run Dijkstra's algorithm
-        path, distance = self.dijkstra_algorithm(start, end)
+        # Préparer les données pour DijkstraPage
+        edges = []
+        for i in range(len(self.sommets)):
+            for j in range(len(self.sommets)):
+                if self.matrice[i][j] > 0:
+                    u = self.sommets[i]
+                    v = self.sommets[j]
+                    w = self.matrice[i][j]
+                    edges.append((u, v, w))
+        
+        data = {
+            'edges': edges,
+            'sommets': self.sommets,
+            'start': start,
+            'end': end
+        }
 
-        if not path:
-            self.update_results_panel(
-                graph_info=(
-                    f"- Nombre de nœuds: {len(self.sommets)}\n"
-                    f"- Nombre d'arêtes: {sum(1 for row in self.matrice for x in row if x != 0)}\n"
-                    f"- Source: {start}\n"
-                    f"- Destination: {end}"
-                ),
-                result_text=f"Aucun chemin trouvé entre {start} et {end}",
-                path=None,
-            )
-            return
+        # Afficher les résultats avec DijkstraPage
+        self.display_dijkstra_results(data)
 
-        # Update results
-        graph_info = (
-            f"- Nombre de nœuds: {len(self.sommets)}\n"
-            f"- Nombre d'arêtes: {sum(1 for row in self.matrice for x in row if x != 0)}\n"
-            f"- Source: {start}\n"
-            f"- Destination: {end}"
-        )
+    def display_dijkstra_results(self, data):
+        """Affiche les résultats avec la classe DijkstraPage"""
+        # Effacer la visualisation précédente
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
 
-        result_text = (
-            f"Plus court chemin trouvé:\n\n"
-            f"De {start} à {end}:\n"
-            f"Chemin: {' → '.join(path)}\n"
-            f"Distance totale: {distance}\n\n"
-            f"Analyse complétée avec succès."
-        )
+        # Créer un cadre conteneur pour DijkstraPage
+        container = ttk.Frame(self.results_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.update_results_panel(graph_info, result_text, path)
+        # Initialiser et afficher DijkstraPage dans le conteneur
+        dijkstra_page = DijkstraPage(container)
+        dijkstra_page.set_data(data)
+        dijkstra_page.pack(fill="both", expand=True)
 
     def dijkstra_algorithm(self, start, end):
         """Implémentation de l'algorithme de Dijkstra"""
@@ -458,7 +474,7 @@ class InputDijkstraPage(tk.Frame):
 
         # Create visualization frame
         viz_frame = ttk.Frame(self.results_frame)
-        viz_frame.pack(fill="both", expand=True, pady=10)
+        viz_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
         # Create figure with modern styling
         fig = plt.figure(figsize=(10, 6), facecolor="#f8f9fa")
@@ -757,14 +773,28 @@ class InputDijkstraPage(tk.Frame):
             self.start_node.set(self.sommets[0])
             self.end_node.set(self.sommets[1])
 
-        # Update graph info
+        # Update graph info (sans visualisation)
         graph_info = (
             f"- Nombre de nœuds: {len(self.sommets)}\n"
             f"- Nombre d'arêtes: {len(self.edges)}\n"
             f"- Sommets: {', '.join(self.sommets)}"
         )
 
-        self.update_results_panel(
-            graph_info=graph_info,
-            result_text="Données du graphe saisies. Prêt à exécuter l'algorithme.",
+        for widget in self.graph_info_frame.winfo_children():
+            widget.destroy()
+        info_label = ttk.Label(
+            self.graph_info_frame,
+            text=graph_info,
+            justify="left",
         )
+        info_label.pack(padx=2, pady=2, anchor="w")
+
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        default_label = ttk.Label(
+            self.results_frame,
+            text="Données du graphe saisies. Prêt à exécuter l'algorithme.",
+            font=("Arial", 10, "italic"),
+            foreground="#7f8c8d",
+        )
+        default_label.pack(pady=50)
