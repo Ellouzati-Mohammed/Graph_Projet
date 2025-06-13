@@ -5,7 +5,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
 from algorithms.graph.Djikstra import djikstra  # Assurez-vous que le chemin d'import est correct
-from data.graph_data import graph  # Adaptez selon votre structure
 from tkinter import ttk
 
 class DijkstraPage(tk.Frame):
@@ -14,33 +13,36 @@ class DijkstraPage(tk.Frame):
         self.canvas_widget = None
         self.data = None
         self.controller = None
-        
-        # Créer un cadre principal
+        self.configure(bg="#f0f0f0")
+
+        # Cadre principal
         main_frame = ttk.Frame(self)
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Bouton de retour
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(fill="x", pady=(0, 10))
-        
-      
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        main_frame.configure(style="TFrame")
+
+        # Titre
+        title_label = ttk.Label(
+            main_frame,
+            text="Résultat de l'algorithme de Dijkstra",
+            font=("Arial", 16, "bold"),
+            foreground="#2c3e50",
+            background="#f0f0f0"
+        )
+        title_label.pack(pady=(0, 10))
 
         # Cadre pour les contrôles
         self.controls_frame = ttk.Frame(main_frame)
         self.controls_frame.pack(fill="x", pady=(0, 10))
-        
-        # Variables pour les sélections
-        self.source_var = tk.StringVar()
-        self.dest_var = tk.StringVar()
-        
+        self.controls_frame.configure(style="TFrame")
+
         # Cadre pour la visualisation
         self.viz_frame = ttk.Frame(main_frame)
         self.viz_frame.pack(fill="both", expand=True)
+        self.viz_frame.configure(style="TFrame")
 
-    def return_to_input(self):
-        """Retourne à la page d'entrée"""
-        if self.controller:
-            self.controller.change_frame("InputGraphPage")
+        # Variables pour les sélections
+        self.source_var = tk.StringVar()
+        self.dest_var = tk.StringVar()
 
     def set_data(self, data):
         """Configure les données et met à jour l'affichage"""
@@ -50,26 +52,7 @@ class DijkstraPage(tk.Frame):
         self.start = data.get('start', '')
         self.end = data.get('end', '')
         
-        # Mettre à jour les contrôles
-        self.update_controls()
-        
         # Afficher le graphe
-        self.afficher_graphe_depuis_data()
-
-    def update_controls(self):
-        """Met à jour les menus déroulants de sélection"""
-        # Nettoyer les anciens contrôles
-        for widget in self.controls_frame.winfo_children():
-            widget.destroy()
-            
-        if not self.sommets:
-            return
-        
-      
-    def on_selection_change(self, event=None):
-        """Appelé quand la sélection change"""
-        self.start = self.source_var.get()
-        self.end = self.dest_var.get()
         self.afficher_graphe_depuis_data()
 
     def afficher_graphe_depuis_data(self):
@@ -91,7 +74,6 @@ class DijkstraPage(tk.Frame):
 
         # Appliquer Dijkstra
         try:
-            from algorithms.graph.Djikstra import djikstra
             chemin = djikstra(self.sommets, matrice_adjacence, self.start, self.end)
         except Exception as e:
             print(f"Erreur Dijkstra: {e}")
@@ -109,24 +91,26 @@ class DijkstraPage(tk.Frame):
             self.canvas_widget.get_tk_widget().destroy()
 
         # Créer une nouvelle figure
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(10, 6))
         fig.patch.set_facecolor('#f0f0f0')  # Fond clair
         
         # Positionnement des nœuds
         pos = nx.spring_layout(G, seed=42)  # Positionnement cohérent
         
         # Couleurs des nœuds et arêtes
-        node_colors = ['green' if sommet in chemin else 'lightblue' for sommet in self.sommets]
+        node_colors = ["#4a6baf" if chemin and sommet in chemin else "#2c3e50" for sommet in self.sommets]
         path_edges = [(chemin[i], chemin[i+1]) for i in range(len(chemin)-1)] if len(chemin) > 1 else []
-        edge_colors = ['red' if (u, v) in path_edges else 'gray' for u, v in G.edges()]
+        edge_colors = ["#4a6baf" if (u, v) in path_edges else "#adb5bd" for u, v in G.edges()]
         edge_widths = [3 if (u, v) in path_edges else 1 for u, v in G.edges()]
 
         # Dessin du graphe
         nx.draw_networkx_nodes(
             G, pos, 
             node_color=node_colors, 
-            node_size=800,
-            ax=ax
+            node_size=1500,
+            ax=ax,
+            alpha=0.9,
+            linewidths=0,
         )
         nx.draw_networkx_edges(
             G, pos, 
@@ -135,12 +119,14 @@ class DijkstraPage(tk.Frame):
             arrows=True,
             arrowstyle='->',
             arrowsize=20,
-            ax=ax
+            ax=ax,
+            alpha=0.7,
         )
         nx.draw_networkx_labels(
             G, pos, 
-            font_size=12,
+            font_size=11,
             font_weight="bold",
+            font_color="white",
             ax=ax
         )
 
@@ -150,8 +136,8 @@ class DijkstraPage(tk.Frame):
             G, pos, 
             edge_labels=edge_labels,
             ax=ax,
-            font_color='darkred',
-            font_size=10,
+            font_color='#495057',
+            font_size=9,
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.7)
         )
         
@@ -163,17 +149,18 @@ class DijkstraPage(tk.Frame):
                 distance += G[u][v]['weight']
             
             title = (
-                f"Chemin le plus court: {' → '.join(chemin)}\n"
+                f"Plus court chemin: {' → '.join(chemin)}\n"
                 f"Distance totale: {distance}"
             )
         else:
             title = f"Aucun chemin trouvé entre {self.start} et {self.end}"
         
-        ax.set_title(title, fontsize=14, pad=15)
+        ax.set_title(title, fontsize=13, fontweight="bold", pad=16)
         ax.set_axis_off()
+        plt.tight_layout()
 
         # Intégration dans Tkinter
         canvas = FigureCanvasTkAgg(fig, master=self.viz_frame)
         canvas.draw()
         self.canvas_widget = canvas
-        canvas.get_tk_widget().pack(fill="both", expand=True)
+        canvas.get_tk_widget().pack(fill="both", expand=True, pady=10)
