@@ -1,18 +1,4 @@
-
-
-
 def kruskal(sommets, matrice_adjacence):
-
-    """
-    Implémente l'algorithme de Kruskal pour obtenir un arbre couvrant minimal (MST).
-    
-    Paramètres :
-    - sommets (list): Liste des sommets du graphe.
-    - matrice_adjacence (list de list): Matrice d'adjacence représentant les poids des arêtes.
-    
-    Retour :
-    - list: Liste des arêtes de l'arbre couvrant minimal, chaque arête étant un tuple (sommet1, sommet2, poids).
-    """
 
     # Fonction pour trouver la racine d'un sommet avec compression de chemin
     def find(parent, sommet):
@@ -24,7 +10,7 @@ def kruskal(sommets, matrice_adjacence):
     def union(parent, rank, sommet1, sommet2):
         root1 = find(parent, sommet1)
         root2 = find(parent, sommet2)
-        
+
         if root1 != root2:
             # Union par rang
             if rank[root1] > rank[root2]:
@@ -57,4 +43,3 @@ def kruskal(sommets, matrice_adjacence):
             mst.append((sommet1, sommet2, poids))
 
     return mst
-

@@ -1,6 +1,3 @@
-from collections import defaultdict
-
-
 def fordFulkerson(sommets, matrice_adj, source, sink):
     # Create residual graph and flow matrix
     n = len(sommets)
