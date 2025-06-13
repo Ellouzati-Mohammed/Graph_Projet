@@ -6,6 +6,7 @@ from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
+from Visualisation.graph.FordFulkersonPage import FordFulkersonPage
 
 
 class InputFordFulkersonPage(tk.Frame):
@@ -424,7 +425,7 @@ class InputFordFulkersonPage(tk.Frame):
         self.update_status("Prêt - Données réinitialisées")
 
     def run_algorithm(self):
-        """Run Ford-Fulkerson algorithm and visualize the result"""
+        """Run Ford-Fulkerson algorithm and visualize the result using FordFulkersonPage"""
         if not self.graph_data["nodes"] or not self.graph_data["edges"]:
             messagebox.showwarning(
                 "Attention", "Veuillez d'abord importer ou saisir les données du graphe"
@@ -434,29 +435,33 @@ class InputFordFulkersonPage(tk.Frame):
         try:
             self.update_status("Exécution de l'algorithme de Ford-Fulkerson...")
 
+            # Supprimer le placeholder
+            if hasattr(self, 'placeholder'):
+                self.placeholder.pack_forget()
+
             # Create capacity matrix
             nodes = self.graph_data["nodes"]
             n = len(nodes)
-            capacity_matrix = [[0] * n for _ in range(n)]
+            matrice_adjacence = [[0] * n for _ in range(n)]
 
             # Fill capacity matrix from edges
             for u, v, c in self.graph_data["edges"]:
                 i = nodes.index(u)
                 j = nodes.index(v)
-                capacity_matrix[i][j] = c
+                matrice_adjacence[i][j] = c
 
-            # Run the algorithm
-            max_flow, flow_matrix = fordFulkerson(
-                nodes,
-                capacity_matrix,
-                self.graph_data["source"],
-                self.graph_data["sink"],
-            )
+            # Prepare data for FordFulkersonPage
+            data = {
+                'sommets': nodes,
+                'matrice': matrice_adjacence,
+                'source': self.graph_data["source"],
+                'sink': self.graph_data["sink"]
+            }
 
-            # Visualize the result
-            self.visualize_network(nodes, capacity_matrix, flow_matrix, max_flow)
+            # Display the results using FordFulkersonPage
+            self.display_ford_fulkerson_results(data)
 
-            self.update_status(f"Algorithme terminé - Flot maximum: {max_flow}")
+            #self.update_status(f"Algorithme terminé - Flot maximum: {max_flow}")
 
         except ValueError as e:
             messagebox.showerror("Erreur de saisie", str(e))
@@ -464,6 +469,20 @@ class InputFordFulkersonPage(tk.Frame):
         except Exception as e:
             messagebox.showerror("Erreur", f"Une erreur est survenue: {str(e)}")
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_ford_fulkerson_results(self, data):
+        """Affiche les résultats avec la classe FordFulkersonPage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour FordFulkersonPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher FordFulkersonPage dans le conteneur
+        ford_fulkerson_page = FordFulkersonPage(container, data)
+        ford_fulkerson_page.pack(fill="both", expand=True)
 
     def visualize_network(self, nodes, capacity_matrix, flow_matrix, max_flow):
         """Visualize the network with capacities and flows"""

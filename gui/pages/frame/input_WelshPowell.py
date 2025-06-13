@@ -6,6 +6,8 @@ from algorithms.graph.Welsh_Powell import Welsh_Powell
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from Visualisation.graph.WelshPowellPage import WelshPowellPage
+
 
 
 class InputWelshPowell(tk.Frame):
@@ -449,7 +451,7 @@ class InputWelshPowell(tk.Frame):
         return max_degree
 
     def run_algorithm(self):
-        """Run Welsh-Powell algorithm and visualize the graph"""
+        """Exécute l'algorithme de Welsh-Powell et visualise le résultat avec WelshPowellPage"""
         if not self.sommets or not self.matrice:
             messagebox.showwarning(
                 "Attention", "Veuillez d'abord importer ou saisir les données du graphe"
@@ -459,167 +461,113 @@ class InputWelshPowell(tk.Frame):
         try:
             self.update_status("Exécution de l'algorithme de Welsh-Powell...")
 
-            # Run Welsh-Powell algorithm
+            # Exécuter l'algorithme de Welsh-Powell
             colored_vertices = Welsh_Powell(self.sommets, self.matrice)
+            
+            # Calculer le nombre de couleurs utilisées
+            num_colors = len(set(c[1] for c in colored_vertices))
 
-            # Create graph visualization
-            self.visualize_graph(colored_vertices)
+            # Préparer les données pour WelshPowellPage
+            data = {
+                'sommets': self.sommets,
+                'matrice': self.matrice,
+                'colored_vertices': colored_vertices,
+                'num_colors': num_colors
+            }
+
+            # Afficher les résultats avec WelshPowellPage
+            self.display_welsh_powell_results(data)
 
             self.update_status(
-                f"Algorithme terminé - {len(set(c[1] for c in colored_vertices))} couleurs utilisées"
+                f"Algorithme terminé - {num_colors} couleurs utilisées"
             )
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Une erreur est survenue: {str(e)}")
             self.update_status("Erreur lors de l'exécution de l'algorithme")
 
-    def visualize_graph(self, colored_vertices):
-        """Visualize the colored graph with simplified color legend"""
-        # Clear previous visualization
+    def display_welsh_powell_results(self, data):
+        """Affiche les résultats avec la classe WelshPowellPage"""
+        # Effacer la visualisation précédente
         for widget in self.viz_frame.winfo_children():
             widget.destroy()
 
+        # Créer un cadre conteneur pour WelshPowellPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher WelshPowellPage dans le conteneur
+        welsh_powell_page = WelshPowellPage(container, self.controller, data)
+        welsh_powell_page.pack(fill="both", expand=True)
+
+    def create_graph_visualization(self, parent_frame):
+        """Crée la visualisation du graphe avec les sommets colorés"""
+        sommets = self.data['sommets']
+        matrice = self.data['matrice']
+        colored_vertices = self.data['colored_vertices']
+        
+        # Créer le graphe
         G = nx.Graph()
-        G.add_nodes_from(self.sommets)
-
-        # Add edges
-        for i in range(len(self.sommets)):
-            for j in range(len(self.sommets)):
-                if self.matrice[i][j] > 0 and i < j:
-                    G.add_edge(self.sommets[i], self.sommets[j])
-
-        # Convert color tuples to hex strings
-        def color_to_hex(color_tuple):
-            return "#{:02x}{:02x}{:02x}".format(
-                int(color_tuple[0] * 255),
-                int(color_tuple[1] * 255),
-                int(color_tuple[2] * 255),
-            )
-
-        # Create color mapping with hex values
-        unique_colors = list(set(color for _, color in colored_vertices))
-        hex_colors = [color_to_hex(color) for color in unique_colors]
-        node_colors = [
-            hex_colors[unique_colors.index(color)] for _, color in colored_vertices
-        ]
-
-        # Create figure with better layout
-        fig = plt.figure(figsize=(10, 6), facecolor="#f8f9fa")
-        ax = fig.add_subplot(111)
-        ax.set_facecolor("#f8f9fa")
-
-        # Improved node positioning
-        pos = nx.spring_layout(G, k=0.5, iterations=100, seed=42)
-
-        # Draw nodes with colors (removed blue border)
-        nx.draw_networkx_nodes(
-            G,
-            pos,
+        G.add_nodes_from(sommets)
+        
+        # Ajouter les arêtes
+        for i in range(len(sommets)):
+            for j in range(i + 1, len(sommets)):
+                if matrice[i][j] > 0:
+                    G.add_edge(sommets[i], sommets[j])
+        
+        # Créer la carte de couleurs
+        color_map = []
+        color_palette = plt.cm.tab10.colors  # Palette de 10 couleurs
+        
+        for sommet in sommets:
+            index = sommets.index(sommet)
+            color_code = None
+            for colored in colored_vertices:
+                if colored[0] == index:
+                    color_code = colored[1]
+                    break
+            
+            # Trouver la couleur RGB correspondante
+            if color_code is not None:
+                color_idx = color_code % len(color_palette)
+                color_rgb = color_palette[color_idx]
+                color_map.append(color_rgb)
+            else:
+                # Couleur par défaut si non trouvée
+                color_map.append("#cccccc")
+        
+        # Créer la figure
+        fig, ax = plt.subplots(figsize=(8, 6))
+        fig.patch.set_facecolor('#f0f0f0')  # Fond clair pour correspondre au thème
+        
+        # Positionnement des nœuds
+        pos = nx.spring_layout(G, seed=42)  # Positionnement cohérent
+        
+        # Dessiner le graphe
+        nx.draw_networkx(
+            G, 
+            pos, 
             ax=ax,
-            node_size=1500,
-            node_color=node_colors,
-            alpha=0.9,
-            linewidths=0,  # Remove border by setting linewidths to 0
-        )
-
-        # Draw labels with better styling
-        nx.draw_networkx_labels(
-            G,
-            pos,
-            ax=ax,
-            font_size=12,
+            node_color=color_map, 
+            node_size=800,
+            edge_color="gray",
+            width=1.5,
+            font_size=10,
             font_weight="bold",
-            font_color="black",  # Changed to black for better visibility
+            with_labels=True
         )
-
-        # Draw edges with custom styling
-        nx.draw_networkx_edges(
-            G,
-            pos,
-            ax=ax,
-            edge_color="#adb5bd",
-            width=2,
-            alpha=0.7,
-        )
-
-        # Title with better styling
-        num_colors = len(unique_colors)
-        ax.set_title(
-            f"Coloration du graphe - {num_colors} couleurs utilisées",
-            fontsize=14,
-            fontweight="bold",
-            pad=20,
-        )
-
-        # Remove axes
-        ax.axis("off")
-
-        plt.tight_layout()
-
-        # Embed in Tkinter
-        canvas = FigureCanvasTkAgg(fig, master=self.viz_frame)
+        
+        # Titre
+        ax.set_title("Coloration des sommets", fontsize=12, pad=15)
+        
+        # Désactiver les axes
+        ax.set_axis_off()
+        
+        # Intégration dans Tkinter
+        canvas = FigureCanvasTkAgg(fig, master=parent_frame)
         canvas.draw()
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(fill=tk.BOTH, expand=True)
-
-        # Add information panel below the graph
-        info_frame = ttk.Frame(self.viz_frame)
-        info_frame.pack(fill=tk.X, pady=(10, 0))
-
-        # Number of colors display
-        ttk.Label(
-            info_frame,
-            text=f"Nombre de couleurs utilisées: {num_colors}",
-            font=("Arial", 12, "bold"),
-            foreground="#2b8a3e",
-        ).pack(side=tk.LEFT, padx=10)
-
-        # Legend
-        legend_frame = ttk.Frame(info_frame)
-        legend_frame.pack(side=tk.RIGHT, padx=10)
-
-        ttk.Label(legend_frame, text="Légende des couleurs:").pack(anchor="w")
-
-        # Create legend items for each color
-        for i, color in enumerate(hex_colors):
-            # Create a small colored frame and label
-            color_frame = ttk.Frame(legend_frame)
-            color_frame.pack(anchor="w")
-
-            # Use a canvas to show the actual color
-            canvas = tk.Canvas(
-                color_frame, width=20, height=20, bg=color, bd=0, highlightthickness=0
-            )
-            canvas.pack(side="left")
-
-            ttk.Label(color_frame, text=f"Couleur {i+1}", foreground="#343a40").pack(
-                side="left", padx=5
-            )
-
-        # Add coloring details table
-        details_frame = ttk.Frame(self.viz_frame)
-        details_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
-
-        # Create a treeview widget
-        columns = ("Sommet", "Couleur")
-        tree = ttk.Treeview(details_frame, columns=columns, show="headings", height=6)
-
-        # Define headings
-        for col in columns:
-            tree.heading(col, text=col)
-            tree.column(col, width=100, anchor="center")
-
-        # Add data (sort by color for better readability)
-        colored_vertices_sorted = sorted(
-            colored_vertices, key=lambda x: unique_colors.index(x[1])
-        )
-        for vertex_idx, color in colored_vertices_sorted:
-            vertex_name = self.sommets[vertex_idx]
-            color_num = unique_colors.index(color) + 1
-            tree.insert("", "end", values=(vertex_name, f"Couleur {color_num}"))
-
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(details_frame, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
-        tree.pack(fill=tk.BOTH, expand=True)
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+        # Stocker une référence pour éviter la destruction par le garbage collector
+        self.canvas_widget = canvas
