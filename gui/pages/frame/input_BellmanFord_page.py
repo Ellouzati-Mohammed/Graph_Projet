@@ -6,7 +6,7 @@ from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
-
+from Visualisation.graph.BellmanFordPage import BellmanFordPage
 
 class InputBellmanFordPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -415,7 +415,7 @@ class InputBellmanFordPage(tk.Frame):
         self.update_status("Prêt - Données réinitialisées")
 
     def run_algorithm(self):
-        """Run Bellman-Ford algorithm and visualize the result"""
+        """Run Bellman-Ford algorithm and visualize the result using BellmanFordPage"""
         if not self.graph_data["nodes"] or not self.graph_data["edges"]:
             messagebox.showwarning(
                 "Attention", "Veuillez d'abord importer ou saisir les données du graphe"
@@ -425,52 +425,32 @@ class InputBellmanFordPage(tk.Frame):
         try:
             self.update_status("Exécution de l'algorithme de Bellman-Ford...")
 
+            # Supprimer le placeholder
+            if hasattr(self, 'placeholder'):
+                self.placeholder.pack_forget()
+
             # Transform data to expected format
             nodes = self.graph_data["nodes"]
             n = len(nodes)
-            adjacency_matrix = [[0] * n for _ in range(n)]
+            matrice_adjacence = [[0] * n for _ in range(n)]
             node_index = {node: i for i, node in enumerate(nodes)}
 
             for u, v, weight in self.graph_data["edges"]:
                 i, j = node_index[u], node_index[v]
-                adjacency_matrix[i][j] = weight
+                matrice_adjacence[i][j] = weight
 
-            # Run the algorithm
-            distances, predecessors = self.bellman_ford(
-                nodes, adjacency_matrix, self.graph_data["start"]
-            )
+            # Prepare data for BellmanFordPage
+            data = {
+                'sommets': nodes,
+                'matrice': matrice_adjacence,
+                'start': self.graph_data["start"],
+                'end': self.graph_data["end"]
+            }
 
-            # Check for negative cycles
-            if distances is None:
-                messagebox.showerror(
-                    "Erreur", "Le graphe contient un cycle de poids négatif"
-                )
-                self.update_status("Erreur: Cycle de poids négatif détecté")
-                return
+            # Display the results using BellmanFordPage
+            self.display_bellman_ford_results(data)
 
-            # Visualize the result
-            self.visualize_graph(nodes, adjacency_matrix, distances, predecessors)
-
-            # Show shortest path if reachable
-            end_idx = node_index[self.graph_data["end"]]
-            if distances[end_idx] != float("inf"):
-                path = self.reconstruct_path(predecessors, self.graph_data["end"])
-                path_str = " → ".join(path)
-                messagebox.showinfo(
-                    "Résultat",
-                    f"Plus court chemin de {self.graph_data['start']} à {self.graph_data['end']}:\n"
-                    f"Distance: {distances[end_idx]}\n"
-                    f"Chemin: {path_str}",
-                )
-                self.update_status(
-                    f"Algorithme terminé - Distance: {distances[end_idx]}"
-                )
-            else:
-                messagebox.showinfo(
-                    "Résultat",
-                    f"Aucun chemin trouvé de {self.graph_data['start']} à {self.graph_data['end']}",
-                )
-                self.update_status("Algorithme terminé - Aucun chemin trouvé")
+            self.update_status("Algorithme de Bellman-Ford exécuté avec succès")
 
         except ValueError as e:
             messagebox.showerror("Erreur de saisie", str(e))
@@ -478,6 +458,20 @@ class InputBellmanFordPage(tk.Frame):
         except Exception as e:
             messagebox.showerror("Erreur", f"Une erreur est survenue: {str(e)}")
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_bellman_ford_results(self, data):
+        """Affiche les résultats avec la classe BellmanFordPage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour BellmanFordPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher BellmanFordPage dans le conteneur
+        bellman_ford_page = BellmanFordPage(container, data)
+        bellman_ford_page.pack(fill="both", expand=True)
 
     def bellman_ford(self, nodes, graph, source):
         """Implementation of Bellman-Ford algorithm"""

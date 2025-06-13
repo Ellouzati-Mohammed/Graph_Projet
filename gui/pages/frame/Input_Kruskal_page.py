@@ -6,7 +6,7 @@ from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
-
+from Visualisation.graph.KruskalPage import KruskalPage
 
 class InputKruskal(tk.Frame):
     def __init__(self, parent, controller):
@@ -427,7 +427,7 @@ class InputKruskal(tk.Frame):
         self.update_status("Prêt - Données réinitialisées")
 
     def run_algorithm(self):
-        """Exécute l'algorithme de Kruskal et visualise le graphe"""
+        """Exécute l'algorithme de Kruskal et visualise le résultat avec KruskalPage"""
         if not self.sommets or not self.matrice:
             messagebox.showwarning(
                 "Attention", "Veuillez d'abord importer ou saisir les données du graphe"
@@ -440,16 +440,41 @@ class InputKruskal(tk.Frame):
             # Exécute l'algorithme de Kruskal
             mst_edges = kruskal(self.sommets, self.matrice)
 
-            # Visualize the result
-            self.visualize_graph(self.sommets, self.edges, mst_edges)
-
-            # Calculate total weight
+            # Calcul du poids total
             total_weight = sum(edge[2] for edge in mst_edges)
+
+            # Préparer les données pour KruskalPage
+            data = {
+                'sommets': self.sommets,
+                'matrice': self.matrice,
+                'edges': self.edges,
+                'mst_edges': mst_edges,
+                'total_weight': total_weight
+            }
+
+            # Afficher les résultats avec KruskalPage
+            self.display_kruskal_results(data)
+
             self.update_status(f"Algorithme terminé - Poids total: {total_weight}")
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Une erreur est survenue: {str(e)}")
             self.update_status("Erreur lors de l'exécution de l'algorithme")
+
+    def display_kruskal_results(self, data):
+        """Affiche les résultats avec la classe KruskalPage"""
+        # Effacer la visualisation précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer un cadre conteneur pour KruskalPage
+        container = ttk.Frame(self.viz_frame)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Initialiser et afficher KruskalPage dans le conteneur
+        kruskal_page = KruskalPage(container)
+        kruskal_page.set_data(data)
+        kruskal_page.pack(fill="both", expand=True)
 
     def visualize_graph(self, nodes, edges, mst_edges):
         """Visualize the graph with MST highlighted"""

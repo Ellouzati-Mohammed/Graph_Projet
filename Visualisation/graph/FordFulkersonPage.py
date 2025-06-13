@@ -1,96 +1,226 @@
 import tkinter as tk
+from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
-from algorithms.graph.FordFulkerson import fordFulkerson
-from data.graph_data import graph 
+import numpy as np
 
 class FordFulkersonPage(tk.Frame):
     def __init__(self, parent, data):
         super().__init__(parent)
-        self.canvas_widget = None
         self.data = data
+        self.viz_frame = tk.Frame(self)  # Frame principal pour la visualisation
+        self.viz_frame.pack(fill=tk.BOTH, expand=True)
         self.visualiser_ford_fulkerson()
-
+        
     def visualiser_ford_fulkerson(self):
+        """Calcule le flot maximum et affiche la visualisation complète"""
         sommets = self.data['sommets']
-        matrice = self.data['matrice']
+        matrice = np.array(self.data['matrice'])  # Convertir en array numpy
         source = self.data['source']
         sink = self.data['sink']
-        try:
-            from algorithms.graph.FordFulkerson import fordFulkerson
-            max_flow, residual_graph = fordFulkerson(sommets, matrice, source, sink)
-        except Exception as e:
-            max_flow = 0
-            residual_graph = {}
-            print(f"Erreur: {e}")
+        
+        # Calcul du flot maximum avec Ford-Fulkerson
+        max_flow, flow_matrix = fordFulkerson(
+            sommets, 
+            matrice.tolist(),  # Reconversion en liste
+            source, 
+            sink
+        )
+        
+        # Appel de la visualisation complète
+        self.visualize_network(sommets, matrice, flow_matrix, max_flow)
 
-        # Création du graphe orienté
+    def visualize_network(self, nodes, capacity_matrix, flow_matrix, max_flow):
+        """Visualise le réseau avec capacités, flots, légende et tableau de détails"""
+        # Nettoyer la frame précédente
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
+
+        # Créer le graphe orienté
         G = nx.DiGraph()
-        G.add_nodes_from(sommets)
-        n = len(sommets)
-        for i in range(n):
-            for j in range(n):
-                if matrice[i][j] > 0:
-                    u, v = sommets[i], sommets[j]
-                    # flot = capacité initiale - capacité résiduelle
-                    res_cap = residual_graph[u][v] if u in residual_graph and v in residual_graph[u] else 0
-                    flow = matrice[i][j] - res_cap
-                    flow = max(0, flow)
-                    G.add_edge(u, v, capacity=matrice[i][j], flow=flow)
+        G.add_nodes_from(nodes)
 
-        # Nettoyage du canvas précédent
-        if self.canvas_widget:
-            self.canvas_widget.destroy()
-
-        fig, ax = plt.subplots(figsize=(10, 8))
-        pos = nx.spring_layout(G, seed=42)
-
-        # Style des arêtes :
+        # Ajouter les arêtes avec capacités et flots
+        edge_labels = {}
         edge_colors = []
-        edge_widths = []
-        for u, v, data in G.edges(data=True):
-            if data['flow'] == max_flow and max_flow > 0:
-                edge_colors.append('green')
-                edge_widths.append(3)
-            elif data['flow'] > 0:
-                edge_colors.append('red')
-                edge_widths.append(2 + data['flow'] * 0.5)
-            else:
-                edge_colors.append('gray')
-                edge_widths.append(1)
 
-        # Dessin du graphe
-        nx.draw_networkx_nodes(G, pos, ax=ax, node_size=800,
-                              node_color='lightblue')
-        nx.draw_networkx_labels(G, pos, ax=ax, font_size=12,
-                               font_weight='bold')
-        
-        # Dessin des arêtes avec flots
-        edges = nx.draw_networkx_edges(
-            G, pos, ax=ax, edge_color=edge_colors,
-            width=edge_widths, arrows=True,
-            arrowstyle='->', arrowsize=20
+        for i in range(len(nodes)):
+            for j in range(len(nodes)):
+                if capacity_matrix[i][j] > 0:
+                    G.add_edge(nodes[i], nodes[j])
+                    flow = flow_matrix[i][j]
+                    capacity = capacity_matrix[i][j]
+
+                    # Formatage du label des arêtes
+                    edge_labels[(nodes[i], nodes[j])] = f"{flow}/{capacity}"
+
+                    # Codage couleur
+                    if flow == 0:
+                        edge_colors.append("#cccccc")  # Gris - pas de flot
+                    elif flow == capacity:
+                        edge_colors.append("#ff6b6b")  # Rouge - saturé
+                    else:
+                        edge_colors.append("#51cf66")  # Vert - flot partiel
+
+        # Création de la figure
+        fig = plt.figure(figsize=(10, 6), facecolor="#f8f9fa")
+        ax = fig.add_subplot(111)
+        ax.set_facecolor("#f8f9fa")
+
+        # Positionnement des nœuds
+        pos = nx.spring_layout(G, k=1.5, iterations=100, seed=42)
+
+        # Dessin des nœuds
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            ax=ax,
+            node_size=1500,
+            node_color="#339af0",
+            alpha=0.9,
+            linewidths=2,
+            edgecolors="#1864ab",
         )
 
-        # Affichage des capacités et flots
-        edge_labels = {
-            (u, v): f"{data['flow']}/{data['capacity']}"
-            for u, v, data in G.edges(data=True)
-        }
-        
+        # Dessin des labels
+        nx.draw_networkx_labels(
+            G, pos, ax=ax, font_size=12, font_weight="bold", font_color="white"
+        )
+
+        # Dessin des arêtes
+        nx.draw_networkx_edges(
+            G,
+            pos,
+            ax=ax,
+            edge_color=edge_colors,
+            width=3,
+            arrows=True,
+            arrowsize=25,
+            arrowstyle="->",
+            connectionstyle="arc3,rad=0.1",
+        )
+
+        # Labels des arêtes
         nx.draw_networkx_edge_labels(
-            G, pos, edge_labels=edge_labels,
-            ax=ax, font_color='darkred', font_size=10,
-            bbox=dict(facecolor='white', edgecolor='none', alpha=0.7)
+            G,
+            pos,
+            edge_labels=edge_labels,
+            ax=ax,
+            font_size=10,
+            font_color="#343a40",
+            bbox=dict(
+                facecolor="white", edgecolor="none", alpha=0.8, boxstyle="round,pad=0.3"
+            ),
         )
 
-        # Ajout du titre avec le flot maximum
-        title = f"Flot maximum: {max_flow}\nSource: {source}, Puits: {sink}"
-        ax.set_title(title, fontsize=14, pad=20)
+        # Titre
+        ax.set_title(
+            f"Réseau de flot - Flot maximum: {max_flow}",
+            fontsize=14,
+            fontweight="bold",
+            pad=20,
+        )
+        ax.axis("off")
+        plt.tight_layout()
 
         # Intégration dans Tkinter
-        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas = FigureCanvasTkAgg(fig, master=self.viz_frame)
         canvas.draw()
-        self.canvas_widget = canvas.get_tk_widget()
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        # Ajout du panneau d'information
+        info_frame = ttk.Frame(self.viz_frame)
+        info_frame.pack(fill=tk.X, pady=(10, 0))
+
+        # Affichage du flot maximum
+        ttk.Label(
+            info_frame,
+            text=f"Flot maximum: {max_flow}",
+            font=("Arial", 12, "bold"),
+            foreground="#2b8a3e",
+        ).pack(side=tk.LEFT, padx=10)
+
+        # Légende
+        legend_frame = ttk.Frame(info_frame)
+        legend_frame.pack(side=tk.RIGHT, padx=10)
+
+        ttk.Label(legend_frame, text="Légende:").pack(anchor="w")
+        ttk.Label(legend_frame, text="• Gris: Pas de flot", foreground="#868e96").pack(anchor="w")
+        ttk.Label(legend_frame, text="• Vert: Flot partiel", foreground="#51cf66").pack(anchor="w")
+        ttk.Label(legend_frame, text="• Rouge: Flot maximal", foreground="#ff6b6b").pack(anchor="w")
+
+        # Tableau de détails des flots
+        details_frame = ttk.Frame(self.viz_frame)
+        details_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+
+        columns = ("Source", "Destination", "Flot", "Capacité", "Saturation")
+        tree = ttk.Treeview(details_frame, columns=columns, show="headings", height=6)
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100, anchor="center")
+
+        # Remplissage du tableau
+        for i in range(len(nodes)):
+            for j in range(len(nodes)):
+                if capacity_matrix[i][j] > 0:
+                    flow = flow_matrix[i][j]
+                    cap = capacity_matrix[i][j]
+                    saturation = f"{(flow/cap)*100:.1f}%" if cap > 0 else "0%"
+                    tree.insert("", "end", values=(nodes[i], nodes[j], flow, cap, saturation))
+
+        # Ajout de la scrollbar
+        scrollbar = ttk.Scrollbar(details_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        tree.pack(fill=tk.BOTH, expand=True)
+
+
+# Algorithme Ford-Fulkerson (à conserver dans un fichier séparé ou dans le même)
+def fordFulkerson(nodes, capacity_matrix, source, sink):
+    """Implémentation de l'algorithme Ford-Fulkerson avec BFS (Edmonds-Karp)"""
+    n = len(nodes)
+    source_idx = nodes.index(source)
+    sink_idx = nodes.index(sink)
+
+    flow_matrix = [[0] * n for _ in range(n)]
+    residual_graph = [[capacity_matrix[i][j] for j in range(n)] for i in range(n)]
+    parent = [-1] * n
+    max_flow = 0
+
+    def bfs(res_graph, s, t, parent):
+        visited = [False] * n
+        queue = [s]
+        visited[s] = True
+
+        while queue:
+            u = queue.pop(0)
+            for v in range(n):
+                if not visited[v] and res_graph[u][v] > 0:
+                    visited[v] = True
+                    parent[v] = u
+                    queue.append(v)
+                    if v == t:
+                        return True
+        return False
+
+    while bfs(residual_graph, source_idx, sink_idx, parent):
+        path_flow = float("Inf")
+        s = sink_idx
+
+        while s != source_idx:
+            path_flow = min(path_flow, residual_graph[parent[s]][s])
+            s = parent[s]
+
+        v = sink_idx
+        while v != source_idx:
+            u = parent[v]
+            residual_graph[u][v] -= path_flow
+            residual_graph[v][u] += path_flow
+            flow_matrix[u][v] += path_flow
+            v = u
+
+        max_flow += path_flow
+
+    return max_flow, flow_matrix
