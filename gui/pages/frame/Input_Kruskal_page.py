@@ -77,13 +77,7 @@ class InputKruskal(tk.Frame):
             foreground="#2c3e50",
         )
         title_label.pack()
-        subtitle_label = ttk.Label(
-            title_frame,
-            text="Arbre couvrant de poids minimal",
-            font=("Arial", 10),
-            foreground="#7f8c8d",
-        )
-        subtitle_label.pack(pady=(0, 10))
+       
 
         # Graph info display
         self.graph_info_frame = ttk.LabelFrame(
@@ -205,7 +199,7 @@ class InputKruskal(tk.Frame):
             info_text = (
                 f"• Nombre de sommets: {len(self.sommets)}\n"
                 f"• Nombre d'arêtes: {len(self.edges)}\n"
-                f"• Poids total: {total_weight:.2f}"
+                
             )
 
         self.graph_info_label.config(text=info_text)
@@ -472,8 +466,7 @@ class InputKruskal(tk.Frame):
         container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Initialiser et afficher KruskalPage dans le conteneur
-        kruskal_page = KruskalPage(container)
-        kruskal_page.set_data(data)
+        kruskal_page = KruskalPage(container, self.controller, data)
         kruskal_page.pack(fill="both", expand=True)
 
     def visualize_graph(self, nodes, edges, mst_edges):
@@ -559,13 +552,7 @@ class InputKruskal(tk.Frame):
 
         # Title with better styling
         total_weight = sum(edge[2] for edge in mst_edges)
-        ax.set_title(
-            f"Arbre couvrant minimal - Poids total: {total_weight}",
-            fontsize=14,
-            fontweight="bold",
-            pad=20,
-        )
-
+       
         # Remove axes
         ax.axis("off")
 
@@ -624,7 +611,6 @@ class InputKruskal(tk.Frame):
         scrollbar.pack(side="right", fill="y")
         tree.pack(fill=tk.BOTH, expand=True)
 
-
 def kruskal(nodes, matrix):
     """Implementation of Kruskal's algorithm for MST"""
     # Create list of all edges
@@ -661,3 +647,6 @@ def kruskal(nodes, matrix):
             mst_edges.append(edge)
 
     return mst_edges
+    return mst_edges
+
+

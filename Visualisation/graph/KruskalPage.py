@@ -4,54 +4,73 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
-from algorithms.graph.Kruskal import kruskal  # Adjust the import according to your project structure
-from data.graph_data import graph  # Adjust the import according to your project structure
+from tkinter import ttk
 
 class KruskalPage(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, controller, data):
         super().__init__(parent)
+        self.controller = controller
+        self.data = data
         self.canvas_widget = None
-        self.sommets = []
-        self.matrice = []
-        self.edges = []
-        self.mst_edges = []
         
-    def set_data(self, data):
-        """Reçoit les données du graphe et de l'arbre couvrant minimal"""
-        self.sommets = data.get('sommets', [])
-        self.matrice = data.get('matrice', [])
-        self.edges = data.get('edges', [])
-        self.mst_edges = data.get('mst_edges', [])
-        self.visualiser_kruskal_graphe()
+        # Main frame with padding
+        main_frame = ttk.Frame(self, padding=10)
+        main_frame.pack(fill="both", expand=True)
         
-    def visualiser_kruskal_graphe(self):
+        # Back button at top right
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill="x", pady=(0, 10))
+        
+        
+        
+        # Informative title
+        title_label = ttk.Label(
+            main_frame,
+            text=f"Arbre Couvrant Minimal (Algorithme de Kruskal)",
+            font=("Arial", 12, "bold")
+        )
+        title_label.pack(pady=(0, 10))
+
+        # Frame for visualization with border
+        viz_frame = ttk.LabelFrame(main_frame, text="Visualisation du graphe et de l'arbre couvrant minimal")
+        viz_frame.pack(fill="both", expand=True)
+        
+        # Internal frame for canvas
+        canvas_frame = ttk.Frame(viz_frame)
+        canvas_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Create visualization immediately
+        self.visualiser_kruskal_graphe(canvas_frame)
+    
+    def return_to_input(self):
+        """Retourne à la page d'entrée"""
+        if self.controller:
+            self.controller.change_frame("InputGraphPage")
+
+    def visualiser_kruskal_graphe(self, parent_frame):
         """Visualise le graphe avec l'arbre couvrant minimal"""
-        if not self.sommets or not self.matrice:
+        if not self.data:
             return
+            
+        sommets = self.data['sommets']
+        matrice = self.data['matrice']
+        mst_edges = self.data['mst_edges']
+        total_weight = self.data['total_weight']
 
-    def visualiser_kruskal_graphe(self):
-        graphe_data = graph.get_graphe()
-        sommets = graphe_data['sommets']
-        matrice_adjacence = graphe_data['matrice']
-        
-        # Get MST edges from Kruskal's algorithm
-        mst_edges = kruskal(sommets, matrice_adjacence)
-     
-
-        # Create the graph from the adjacency matrix
+        # Create the graph
         G = nx.Graph()
         G.add_nodes_from(sommets)
 
+        # Add edges from adjacency matrix
         for i in range(len(sommets)):
             for j in range(len(sommets)):
-                poids = matrice_adjacence[i][j]
+                poids = matrice[i][j]
                 if poids > 0:
                     G.add_edge(sommets[i], sommets[j], weight=poids)
 
         # Prepare MST edges for comparison
         mst_set = set()
         for u, v, w in mst_edges:
-            # Use frozenset to ignore edge direction and include weight
             mst_set.add((frozenset({u, v}), w))
 
         # Collect edges in G that are part of the MST
@@ -61,29 +80,38 @@ class KruskalPage(tk.Frame):
             if (frozenset({u, v}), w) in mst_set:
                 mst_edges_g.append((u, v))
 
-        # Clear previous canvas
-        if self.canvas_widget:
-            self.canvas_widget.destroy()
-
-        fig, ax = plt.subplots(figsize=(5, 5))
+        # Create figure
+        fig, ax = plt.subplots(figsize=(8, 6))
+        fig.patch.set_facecolor('#f0f0f0')  # Light background to match theme
+        
+        # Node positioning
         pos = nx.spring_layout(G, seed=42)  # Consistent layout
 
         # Draw all nodes
-        nx.draw_networkx_nodes(G, pos, ax=ax, node_size=300, node_color="gray")
+        nx.draw_networkx_nodes(G, pos, ax=ax, node_size=800, node_color="lightblue")
 
         # Draw all edges (non-MST)
-        nx.draw_networkx_edges(G, pos, ax=ax, edgelist=G.edges(), edge_color="black", width=1)
+        nx.draw_networkx_edges(G, pos, ax=ax, edgelist=G.edges(), edge_color="gray", width=1.5)
 
         # Highlight MST edges
         nx.draw_networkx_edges(G, pos, ax=ax, edgelist=mst_edges_g, edge_color="red", width=3)
 
         # Draw labels for nodes and edges
-        nx.draw_networkx_labels(G, pos, ax=ax, font_size=9, font_weight="bold")
+        nx.draw_networkx_labels(G, pos, ax=ax, font_size=10, font_weight="bold")
         edge_labels = nx.get_edge_attributes(G, "weight")
-        nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels, font_color='red', font_size=7)
+        nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels, font_color='red', font_size=9)
 
-        # Embed the plot in Tkinter
-        canvas = FigureCanvasTkAgg(fig, master=self)
+        # Set title with total weight
+        ax.set_title(f"Arbre Couvrant Minimal (Kruskal) - Poids total: {total_weight}", fontsize=12, pad=15)
+        
+        # Disable axes
+        ax.set_axis_off()
+        
+        # Embed in Tkinter
+        canvas = FigureCanvasTkAgg(fig, master=parent_frame)
         canvas.draw()
-        self.canvas_widget = canvas.get_tk_widget()
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+        # Store reference to prevent garbage collection
+        self.canvas_widget = canvas
+
