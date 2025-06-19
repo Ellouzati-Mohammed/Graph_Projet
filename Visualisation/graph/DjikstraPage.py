@@ -5,160 +5,129 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
 from algorithms.graph.Djikstra import djikstra  # Assurez-vous que le chemin d'import est correct
-from data.graph_data import graph  # Adaptez selon votre structure
+from tkinter import ttk
 
 class DijkstraPage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas_widget = None
-        self.data = None  # Pour stocker les données reçues
-        self.sommets = []
+        self.data = None
+        self.controller = None
+        self.configure(bg="#f0f0f0")
+
+        # Cadre principal
+        main_frame = ttk.Frame(self)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        main_frame.configure(style="TFrame")
+
+        # Titre
+        title_label = ttk.Label(
+            main_frame,
+            text="Résultat de l'algorithme de Dijkstra",
+            font=("Arial", 16, "bold"),
+            foreground="#2c3e50",
+            background="#f0f0f0"
+        )
+        title_label.pack(pady=(0, 10))
+
+        # Cadre pour les contrôles
+        self.controls_frame = ttk.Frame(main_frame)
+        self.controls_frame.pack(fill="x", pady=(0, 10))
+        self.controls_frame.configure(style="TFrame")
+
+        # Cadre pour la visualisation
+        self.viz_frame = ttk.Frame(main_frame)
+        self.viz_frame.pack(fill="both", expand=True)
+        self.viz_frame.configure(style="TFrame")
+
+        # Variables pour les sélections
         self.source_var = tk.StringVar()
         self.dest_var = tk.StringVar()
-        self.controls_frame = tk.Frame(self)
-        self.controls_frame.pack(fill=tk.X, padx=10, pady=5)
-        self.menu_source = None
-        self.menu_dest = None
-        self.visualiser_djikstra_graphe()
 
     def set_data(self, data):
-        """Méthode pour recevoir les données à visualiser (liste d'arêtes)"""
+        """Configure les données et met à jour l'affichage"""
         self.data = data
-        self.afficher_graphe_depuis_data()
-
-    def update_controls(self):
-        # Nettoyer les anciens menus
-        for widget in self.controls_frame.winfo_children():
-            widget.destroy()
-        if not self.sommets:
-            return
-        tk.Label(self.controls_frame, text="Source :").pack(side=tk.LEFT, padx=5)
-        self.menu_source = tk.OptionMenu(self.controls_frame, self.source_var, *self.sommets, command=self.on_selection_change)
-        self.menu_source.pack(side=tk.LEFT, padx=5)
-        tk.Label(self.controls_frame, text="Destination :").pack(side=tk.LEFT, padx=5)
-        self.menu_dest = tk.OptionMenu(self.controls_frame, self.dest_var, *self.sommets, command=self.on_selection_change)
-        self.menu_dest.pack(side=tk.LEFT, padx=5)
-
-    def on_selection_change(self, _=None):
+        self.sommets = data.get('sommets', [])
+        self.edges = data.get('edges', [])
+        self.start = data.get('start', '')
+        self.end = data.get('end', '')
+        
+        # Afficher le graphe
         self.afficher_graphe_depuis_data()
 
     def afficher_graphe_depuis_data(self):
-        if not self.data:
+        """Affiche le graphe avec le chemin le plus court"""
+        if not self.data or not self.sommets or not self.edges:
             return
-        # Extraire les sommets
-        self.sommets = list(sorted(set([u for u, v, w in self.data] + [v for u, v, w in self.data])))
+            
+        # Créer la matrice d'adjacence
         n = len(self.sommets)
         sommet_index = {s: i for i, s in enumerate(self.sommets)}
-        # Créer la matrice d'adjacence
         matrice_adjacence = [[float('inf')] * n for _ in range(n)]
-        for u, v, w in self.data:
+        
+        for u, v, w in self.edges:
             i, j = sommet_index[u], sommet_index[v]
             matrice_adjacence[i][j] = w
+        
         for i in range(n):
             matrice_adjacence[i][i] = 0
-        # Mettre à jour les menus déroulants
-        self.update_controls()
-        # Choisir départ/arrivée (par défaut premier et dernier, sinon valeur sélectionnée)
-        debut = self.source_var.get() if self.source_var.get() in self.sommets else self.sommets[0]
-        depart = self.dest_var.get() if self.dest_var.get() in self.sommets else self.sommets[-1]
-        self.source_var.set(debut)
-        self.dest_var.set(depart)
+
         # Appliquer Dijkstra
         try:
-            chemin = djikstra(self.sommets, matrice_adjacence, debut, depart)
+            chemin = djikstra(self.sommets, matrice_adjacence, self.start, self.end)
         except Exception as e:
             print(f"Erreur Dijkstra: {e}")
             chemin = []
+
         # Créer le graphe
         G = nx.DiGraph()
         G.add_nodes_from(self.sommets)
-        for u, v, w in self.data:
+        
+        for u, v, w in self.edges:
             G.add_edge(u, v, weight=w)
-        # Nettoyage du canvas précédent
+
+        # Nettoyer le canvas précédent s'il existe
         if self.canvas_widget:
-            self.canvas_widget.destroy()
-        fig, ax = plt.subplots(figsize=(5, 5))
-        pos = nx.spring_layout(G, seed=42)
-        # Couleurs des nœuds et arêtes
-        node_colors = ['green' if sommet in chemin else 'lightblue' for sommet in self.sommets]
-        path_edges = [(chemin[i], chemin[i+1]) for i in range(len(chemin)-1)] if len(chemin) > 1 else []
-        edge_colors = ['red' if (u, v) in path_edges else 'gray' for u, v in G.edges()]
-        edge_widths = [2 if (u, v) in path_edges else 1 for u, v in G.edges()]
-        # Dessin du graphe
-        nx.draw(
-            G, pos, ax=ax, with_labels=True,
-            node_color=node_colors, 
-            edge_color=edge_colors,
-            width=edge_widths,
-            node_size=300,
-            font_size=9,
-            font_weight="bold",
-            arrows=True
-        )
-        # Affichage des poids des arêtes
-        edge_labels = nx.get_edge_attributes(G, "weight")
-        nx.draw_networkx_edge_labels(
-            G, pos, 
-            edge_labels=edge_labels,
-            ax=ax,
-            font_color='red',
-            font_size=7
-        )
-        canvas = FigureCanvasTkAgg(fig, master=self)
-        canvas.draw()
-        self.canvas_widget = canvas.get_tk_widget()
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+            self.canvas_widget.get_tk_widget().destroy()
 
-    def visualiser_djikstra_graphe(self):
-        graphe_data = graph.get_graphe()
-        sommets = graphe_data['sommets']
-        matrice_adjacence = graphe_data['matrice']
+        # Créer une nouvelle figure
+        fig, ax = plt.subplots(figsize=(10, 6))
+        fig.patch.set_facecolor('#f0f0f0')  # Fond clair
         
-        # Sélection des nœuds de départ et d'arrivée (exemple: premier et dernier)
-        debut = sommets[0]
-        depart = sommets[-1]
-
-        # Calcul du chemin avec Dijkstra
-        try:
-            chemin = djikstra(sommets, matrice_adjacence, debut, depart)
-        except ValueError as e:
-            print(f"Erreur: {e}")
-            chemin = []
-
-        # Création du graphe orienté
-        G = nx.DiGraph()
-        G.add_nodes_from(sommets)
-        
-        # Ajout des arêtes pondérées
-        for i in range(len(sommets)):
-            for j in range(len(sommets)):
-                poids = matrice_adjacence[i][j]
-                if poids > 0:
-                    G.add_edge(sommets[i], sommets[j], weight=poids)
-
-        # Nettoyage du canvas précédent
-        if self.canvas_widget:
-            self.canvas_widget.destroy()
-
-        fig, ax = plt.subplots(figsize=(5, 5))
+        # Positionnement des nœuds
         pos = nx.spring_layout(G, seed=42)  # Positionnement cohérent
-
+        
         # Couleurs des nœuds et arêtes
-        node_colors = ['green' if sommet in chemin else 'lightblue' for sommet in sommets]
+        node_colors = ["#4a6baf" if chemin and sommet in chemin else "#2c3e50" for sommet in self.sommets]
         path_edges = [(chemin[i], chemin[i+1]) for i in range(len(chemin)-1)] if len(chemin) > 1 else []
-        edge_colors = ['red' if (u, v) in path_edges else 'gray' for u, v in G.edges()]
-        edge_widths = [2 if (u, v) in path_edges else 1 for u, v in G.edges()]
+        edge_colors = ["#4a6baf" if (u, v) in path_edges else "#adb5bd" for u, v in G.edges()]
+        edge_widths = [3 if (u, v) in path_edges else 1 for u, v in G.edges()]
 
         # Dessin du graphe
-        nx.draw(
-            G, pos, ax=ax, with_labels=True,
+        nx.draw_networkx_nodes(
+            G, pos, 
             node_color=node_colors, 
+            node_size=1500,
+            ax=ax,
+            alpha=0.9,
+            linewidths=0,
+        )
+        nx.draw_networkx_edges(
+            G, pos, 
             edge_color=edge_colors,
             width=edge_widths,
-            node_size=300,
-            font_size=9,
+            arrows=True,
+            arrowstyle='->',
+            arrowsize=20,
+            ax=ax,
+            alpha=0.7,
+        )
+        nx.draw_networkx_labels(
+            G, pos, 
+            font_size=11,
             font_weight="bold",
-            arrows=True
+            font_color="white",
+            ax=ax
         )
 
         # Affichage des poids des arêtes
@@ -167,12 +136,31 @@ class DijkstraPage(tk.Frame):
             G, pos, 
             edge_labels=edge_labels,
             ax=ax,
-            font_color='red',
-            font_size=7
+            font_color='#495057',
+            font_size=9,
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.7)
         )
+        
+        # Ajouter le titre avec les informations
+        if chemin:
+            distance = 0
+            for i in range(len(chemin) - 1):
+                u, v = chemin[i], chemin[i+1]
+                distance += G[u][v]['weight']
+            
+            title = (
+                f"Plus court chemin: {' → '.join(chemin)}\n"
+                f"Distance totale: {distance}"
+            )
+        else:
+            title = f"Aucun chemin trouvé entre {self.start} et {self.end}"
+        
+        ax.set_title(title, fontsize=13, fontweight="bold", pad=16)
+        ax.set_axis_off()
+        plt.tight_layout()
 
         # Intégration dans Tkinter
-        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas = FigureCanvasTkAgg(fig, master=self.viz_frame)
         canvas.draw()
-        self.canvas_widget = canvas.get_tk_widget()
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+        self.canvas_widget = canvas
+        canvas.get_tk_widget().pack(fill="both", expand=True, pady=10)
