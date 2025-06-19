@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 from Visualisation.Programation_leaner.SimplexPage import SimplexePage
 
+
 class InputSimplexPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -87,6 +88,22 @@ class InputSimplexPage(tk.Frame):
             foreground="#7f8c8d",
         )
         subtitle_label.pack(pady=(0, 10))
+
+        # Optimization type selector (Max/Min)
+        opt_type_frame = ttk.Frame(title_frame)
+        opt_type_frame.pack(fill="x", pady=(0, 10))
+        ttk.Label(
+            opt_type_frame, text="Type d'optimisation :", font=("Arial", 10)
+        ).pack(side="left", padx=(0, 5))
+        self.optimization_type = tk.StringVar(value="max")
+        opt_combo = ttk.Combobox(
+            opt_type_frame,
+            textvariable=self.optimization_type,
+            values=["max", "min"],
+            state="readonly",
+            width=6,
+        )
+        opt_combo.pack(side="left")
 
         # Data info display
         self.data_info_frame = ttk.LabelFrame(
@@ -438,9 +455,10 @@ class InputSimplexPage(tk.Frame):
 
             # Créer les données pour SimplexePage
             data = {
-                'c': self.c,
-                'A': self.A,
-                'b': self.b
+                "c": self.c,
+                "A": self.A,
+                "b": self.b,
+                "optimization_type": self.optimization_type.get(),
             }
 
             # Afficher les résultats avec SimplexePage

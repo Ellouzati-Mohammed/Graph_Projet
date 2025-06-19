@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from algorithms.pl.NorthWest import northwest_corner
 
+
 class NorthwestPage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -19,13 +20,13 @@ class NorthwestPage(tk.Frame):
     def afficher_northwest_depuis_data(self):
         if not self.data:
             return
-        supply = self.data['supply']
-        demand = self.data['demand']
-        costs = np.array(self.data['costs'])
-        
+        supply = self.data["supply"]
+        demand = self.data["demand"]
+        costs = np.array(self.data["costs"])
+
         # Résolution
         success, message, alloc, total_cost = northwest_corner(supply, demand, costs)
-        
+
         # Nettoyage précédente visualisation
         if self.canvas_widget:
             self.canvas_widget.destroy()
@@ -38,14 +39,27 @@ class NorthwestPage(tk.Frame):
         result_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
         # Title label
-        title_label = tk.Label(result_frame, text="Résultats de l'algorithme", font=("Arial", 11, "bold"), anchor="w", bg="#f0f0f0")
+        title_label = tk.Label(
+            result_frame,
+            text="Résultats de l'algorithme",
+            font=("Arial", 11, "bold"),
+            anchor="w",
+            bg="#f0f0f0",
+        )
         title_label.pack(anchor="w", pady=(0, 5))
 
         # Status and cost
         status_text = f"Statut: {'Succès' if success else 'Erreur'}\nMessage: {message}"
         if success:
             status_text += f"\n\nCoût total: {total_cost:.2f}"
-        status_label = tk.Label(result_frame, text=status_text, font=("Arial", 10), anchor="w", justify="left", bg="#f0f0f0")
+        status_label = tk.Label(
+            result_frame,
+            text=status_text,
+            font=("Arial", 10),
+            anchor="w",
+            justify="left",
+            bg="#f0f0f0",
+        )
         status_label.pack(anchor="w", pady=(0, 10))
 
         # Allocation matrix as a grid of labels (if success)
@@ -54,16 +68,36 @@ class NorthwestPage(tk.Frame):
             matrix_frame.pack(pady=(0, 10))
             n_rows, n_cols = alloc.shape
             # Header row
-            tk.Label(matrix_frame, text="", bg="#f0f0f0").grid(row=0, column=0, padx=2, pady=2)
+            tk.Label(matrix_frame, text="", bg="#f0f0f0").grid(
+                row=0, column=0, padx=2, pady=2
+            )
             for j in range(n_cols):
-                tk.Label(matrix_frame, text=f"D{j+1}", font=("Arial", 10, "bold"), bg="#f0f0f0").grid(row=0, column=j+1, padx=2, pady=2)
+                tk.Label(
+                    matrix_frame,
+                    text=f"D{j+1}",
+                    font=("Arial", 10, "bold"),
+                    bg="#f0f0f0",
+                ).grid(row=0, column=j + 1, padx=2, pady=2)
             # Data rows
             for i in range(n_rows):
-                tk.Label(matrix_frame, text=f"S{i+1}", font=("Arial", 10, "bold"), bg="#f0f0f0").grid(row=i+1, column=0, padx=2, pady=2)
+                tk.Label(
+                    matrix_frame,
+                    text=f"S{i+1}",
+                    font=("Arial", 10, "bold"),
+                    bg="#f0f0f0",
+                ).grid(row=i + 1, column=0, padx=2, pady=2)
                 for j in range(n_cols):
                     val = alloc[i, j]
                     bg_color = "#dbefff" if val > 0 else "white"
-                    tk.Label(matrix_frame, text=f"{int(val)}", width=6, font=("Arial", 10), bg=bg_color, relief="solid", borderwidth=1).grid(row=i+1, column=j+1, padx=2, pady=2)
+                    tk.Label(
+                        matrix_frame,
+                        text=f"{int(val)}",
+                        width=6,
+                        font=("Arial", 10),
+                        bg=bg_color,
+                        relief="solid",
+                        borderwidth=1,
+                    ).grid(row=i + 1, column=j + 1, padx=2, pady=2)
 
         # Plot on the right (if success)
         if success:
@@ -79,14 +113,14 @@ class NorthwestPage(tk.Frame):
                     alloc_arr[:, j],
                     bottom=bottom,
                     label=f"Client {j+1}",
-                    color=colors[j]
+                    color=colors[j],
                 )
                 bottom += alloc_arr[:, j]
             ax.set_xticks(range(n_fournisseurs))
             ax.set_xticklabels([f"Fourn. {i+1}" for i in range(n_fournisseurs)])
             ax.set_ylabel("Quantité allouée")
             ax.set_title("Répartition des allocations par fournisseur (Nord-Ouest)")
-            ax.legend(title="Clients", bbox_to_anchor=(1.05, 1), loc='upper left')
+            ax.legend(title="Clients", bbox_to_anchor=(1.05, 1), loc="upper left")
             plt.tight_layout()
             canvas = FigureCanvasTkAgg(fig, master=main_frame)
             canvas.draw()

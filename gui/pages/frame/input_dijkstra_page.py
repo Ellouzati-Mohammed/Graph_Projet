@@ -7,7 +7,7 @@ import json
 import matplotlib.pyplot as plt
 import networkx as nx
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from Visualisation.graph.DjikstraPage import DijkstraPage
+
 
 class DijkstraImporter:
     def __init__(self, parent_frame, controller):
@@ -32,7 +32,7 @@ class DijkstraImporter:
         ttk.Button(
             self.frame,
             text="Saisie manuelle",
-            command=self.controller.saisie_manuelle,
+            command=self.manual_input,
             style="Accent.TButton",
         ).pack(side="left", padx=5, pady=5, fill="x", expand=True)
 
@@ -115,6 +115,19 @@ class DijkstraImporter:
                     "Erreur", f"Erreur lors de la lecture du fichier: {str(e)}"
                 )
 
+    def manual_input(self):
+        """Handle manual input by calling the parent frame's method"""
+        if hasattr(self.controller, "saisie_manuelle"):
+            self.controller.saisie_manuelle()
+        else:
+            # If the controller doesn't have the method, call it directly on the parent frame
+            parent = (
+                self.controller
+                if hasattr(self.controller, "saisie_manuelle")
+                else self.frame.master
+            )
+            parent.saisie_manuelle()
+
 
 class InputDijkstraPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -155,9 +168,13 @@ class InputDijkstraPage(tk.Frame):
         self.configure(background="#f0f0f0")
 
     def create_widgets(self):
-        # Main container with padding
-        self.main_frame = ttk.Frame(self)
-        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Clear the main frame if it exists
+        if hasattr(self, "main_frame"):
+            for widget in self.main_frame.winfo_children():
+                widget.destroy()
+        else:
+            self.main_frame = ttk.Frame(self)
+            self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
         # Left panel for input controls
         self.left_panel = ttk.Frame(self.main_frame)
@@ -249,7 +266,7 @@ class InputDijkstraPage(tk.Frame):
         )
         self.help_label.pack(pady=5)
 
-        # Initialize results panel (empty at first)
+        # Initialize results panel
         self.init_results_panel()
 
     def init_results_panel(self):
@@ -313,32 +330,17 @@ class InputDijkstraPage(tk.Frame):
             self.start_node.set(sommets[0])
             self.end_node.set(sommets[1])
 
-        # Update graph info in results panel (sans visualisation du graphe)
+        # Update graph info in results panel
         graph_info = (
             f"- Nombre de nœuds: {len(sommets)}\n"
             f"- Nombre d'arêtes: {sum(1 for row in matrice for x in row if x != 0)}\n"
             f"- Sommets: {', '.join(sommets)}"
         )
 
-        # Affiche juste les infos, pas de visualisation
-        for widget in self.graph_info_frame.winfo_children():
-            widget.destroy()
-        info_label = ttk.Label(
-            self.graph_info_frame,
-            text=graph_info,
-            justify="left",
+        self.update_results_panel(
+            graph_info=graph_info,
+            result_text="Données du graphe chargées. Prêt à exécuter l'algorithme.",
         )
-        info_label.pack(padx=2, pady=2, anchor="w")
-
-        for widget in self.results_frame.winfo_children():
-            widget.destroy()
-        default_label = ttk.Label(
-            self.results_frame,
-            text="Données du graphe chargées. Prêt à exécuter l'algorithme.",
-            font=("Arial", 10, "italic"),
-            foreground="#7f8c8d",
-        )
-        default_label.pack(pady=50)
 
         messagebox.showinfo(
             "Données chargées",
@@ -348,7 +350,7 @@ class InputDijkstraPage(tk.Frame):
         )
 
     def run_algorithm(self):
-        """Lance l'algorithme de Dijkstra et visualise le résultat avec DijkstraPage"""
+        """Lance l'algorithme avec les données importées"""
         if not self.sommets or not self.matrice:
             messagebox.showwarning(
                 "Attention", "Veuillez d'abord importer ou saisir les données du graphe"
@@ -370,40 +372,39 @@ class InputDijkstraPage(tk.Frame):
             )
             return
 
-        # Préparer les données pour DijkstraPage
-        edges = []
-        for i in range(len(self.sommets)):
-            for j in range(len(self.sommets)):
-                if self.matrice[i][j] > 0:
-                    u = self.sommets[i]
-                    v = self.sommets[j]
-                    w = self.matrice[i][j]
-                    edges.append((u, v, w))
-        
-        data = {
-            'edges': edges,
-            'sommets': self.sommets,
-            'start': start,
-            'end': end
-        }
+        # Run Dijkstra's algorithm
+        path, distance = self.dijkstra_algorithm(start, end)
 
-        # Afficher les résultats avec DijkstraPage
-        self.display_dijkstra_results(data)
+        if not path:
+            self.update_results_panel(
+                graph_info=(
+                    f"- Nombre de nœuds: {len(self.sommets)}\n"
+                    f"- Nombre d'arêtes: {sum(1 for row in self.matrice for x in row if x != 0)}\n"
+                    f"- Source: {start}\n"
+                    f"- Destination: {end}"
+                ),
+                result_text=f"Aucun chemin trouvé entre {start} et {end}",
+                path=None,
+            )
+            return
 
-    def display_dijkstra_results(self, data):
-        """Affiche les résultats avec la classe DijkstraPage"""
-        # Effacer la visualisation précédente
-        for widget in self.results_frame.winfo_children():
-            widget.destroy()
+        # Update results
+        graph_info = (
+            f"- Nombre de nœuds: {len(self.sommets)}\n"
+            f"- Nombre d'arêtes: {sum(1 for row in self.matrice for x in row if x != 0)}\n"
+            f"- Source: {start}\n"
+            f"- Destination: {end}"
+        )
 
-        # Créer un cadre conteneur pour DijkstraPage
-        container = ttk.Frame(self.results_frame)
-        container.pack(fill="both", expand=True, padx=10, pady=10)
+        result_text = (
+            f"Plus court chemin trouvé:\n\n"
+            f"De {start} à {end}:\n"
+            f"Chemin: {' → '.join(path)}\n"
+            f"Distance totale: {distance}\n\n"
+            f"Analyse complétée avec succès."
+        )
 
-        # Initialiser et afficher DijkstraPage dans le conteneur
-        dijkstra_page = DijkstraPage(container)
-        dijkstra_page.set_data(data)
-        dijkstra_page.pack(fill="both", expand=True)
+        self.update_results_panel(graph_info, result_text, path)
 
     def dijkstra_algorithm(self, start, end):
         """Implémentation de l'algorithme de Dijkstra"""
@@ -474,7 +475,7 @@ class InputDijkstraPage(tk.Frame):
 
         # Create visualization frame
         viz_frame = ttk.Frame(self.results_frame)
-        viz_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        viz_frame.pack(fill="both", expand=True, pady=10)
 
         # Create figure with modern styling
         fig = plt.figure(figsize=(10, 6), facecolor="#f8f9fa")
@@ -502,10 +503,13 @@ class InputDijkstraPage(tk.Frame):
             pos,
             ax=ax,
             edge_color="#adb5bd",
-            width=1,
-            arrowstyle="->",
-            arrowsize=15,
-            alpha=0.7,
+            width=1.5,  # Make edges thicker
+            arrows=True,  # Ensure arrows are shown
+            arrowsize=20,  # Larger arrow heads
+            arrowstyle="-|>",  # More pronounced arrow style
+            min_source_margin=15,  # Space between node and arrow start
+            min_target_margin=15,  # Space between node and arrow tip
+            alpha=0.8,
         )
 
         # Draw edge labels (weights)
@@ -529,8 +533,11 @@ class InputDijkstraPage(tk.Frame):
                 ax=ax,
                 edge_color="#4a6baf",
                 width=3,
-                arrowstyle="->",
-                arrowsize=20,
+                arrows=True,
+                arrowsize=25,
+                arrowstyle="-|>",
+                min_source_margin=15,
+                min_target_margin=15,
             )
 
         # Draw nodes with different colors for path vs non-path
@@ -659,14 +666,19 @@ class InputDijkstraPage(tk.Frame):
 
     def saisie_manuelle(self):
         """Affiche l'interface de saisie manuelle"""
-        self.clear()
+        # Clear only the content we need to replace
+        if hasattr(self, "main_frame"):
+            for widget in self.main_frame.winfo_children():
+                widget.destroy()
+        else:
+            self.main_frame = ttk.Frame(self)
+            self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Main container
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Reset edges list
+        self.edges = []
 
         # Input frame
-        input_frame = ttk.LabelFrame(main_frame, text="Saisie des arêtes")
+        input_frame = ttk.LabelFrame(self.main_frame, text="Saisie des arêtes")
         input_frame.pack(fill="x", padx=10, pady=10)
 
         # Entry fields
@@ -697,7 +709,7 @@ class InputDijkstraPage(tk.Frame):
         ).grid(row=3, column=0, columnspan=2, pady=10)
 
         # List of edges
-        list_frame = ttk.LabelFrame(main_frame, text="Arêtes ajoutées")
+        list_frame = ttk.LabelFrame(self.main_frame, text="Arêtes ajoutées")
         list_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.edges_listbox = tk.Listbox(
@@ -706,10 +718,10 @@ class InputDijkstraPage(tk.Frame):
         self.edges_listbox.pack(fill="both", expand=True, padx=5, pady=5)
 
         # Navigation buttons
-        nav_frame = ttk.Frame(main_frame)
+        nav_frame = ttk.Frame(self.main_frame)
         nav_frame.pack(fill="x", pady=10)
 
-        ttk.Button(nav_frame, text="Retour", command=self.clear).pack(
+        ttk.Button(nav_frame, text="Annuler", command=self.create_widgets).pack(
             side="left", padx=5, fill="x", expand=True
         )
 
@@ -766,6 +778,9 @@ class InputDijkstraPage(tk.Frame):
             j = node_index[t]
             self.matrice[i][j] = w
 
+        # Recreate the main interface
+        self.create_widgets()
+
         # Update comboboxes
         self.start_combo["values"] = self.sommets
         self.end_combo["values"] = self.sommets
@@ -773,28 +788,14 @@ class InputDijkstraPage(tk.Frame):
             self.start_node.set(self.sommets[0])
             self.end_node.set(self.sommets[1])
 
-        # Update graph info (sans visualisation)
+        # Update graph info
         graph_info = (
             f"- Nombre de nœuds: {len(self.sommets)}\n"
             f"- Nombre d'arêtes: {len(self.edges)}\n"
             f"- Sommets: {', '.join(self.sommets)}"
         )
 
-        for widget in self.graph_info_frame.winfo_children():
-            widget.destroy()
-        info_label = ttk.Label(
-            self.graph_info_frame,
-            text=graph_info,
-            justify="left",
+        self.update_results_panel(
+            graph_info=graph_info,
+            result_text="Données du graphe saisies. Prêt à exécuter l'algorithme.",
         )
-        info_label.pack(padx=2, pady=2, anchor="w")
-
-        for widget in self.results_frame.winfo_children():
-            widget.destroy()
-        default_label = ttk.Label(
-            self.results_frame,
-            text="Données du graphe saisies. Prêt à exécuter l'algorithme.",
-            font=("Arial", 10, "italic"),
-            foreground="#7f8c8d",
-        )
-        default_label.pack(pady=50)
