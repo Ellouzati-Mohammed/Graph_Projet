@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 from Visualisation.Programation_leaner.vogelsPage import VogelsApproximationPage
 
+
 class InputVogelsPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -419,22 +420,24 @@ class InputVogelsPage(tk.Frame):
         """Lance l'algorithme avec les données saisies"""
         try:
             self.validate_data()
-            self.update_status("Exécution de l'algorithme du Moindre Coût...")
+            self.update_status("Exécution de l'algorithme de Vogel...")
 
-            # Supprimer le placeholder
-            self.placeholder.pack_forget()
+            # Run Vogel's algorithm
+            solution, total_cost = self.vogels_algorithm()
 
-            # Créer les données pour VogelsApproximationPage
+            # Prepare data for display
             data = {
-                'supply': self.supply,
-                'demand': self.demand,
-                'costs': self.costs
+                "supply": self.supply,
+                "demand": self.demand,
+                "costs": self.costs,
+                "solution": solution,
+                "total_cost": total_cost,
             }
 
-            # Afficher les résultats avec VogelsApproximationPage
+            # Display results
             self.display_vogels_results(data)
 
-            self.update_status("Algorithme du Moindre Coût exécuté avec succès")
+            self.update_status("Algorithme de Vogel exécuté avec succès")
 
         except Exception as e:
             messagebox.showerror(
@@ -442,8 +445,93 @@ class InputVogelsPage(tk.Frame):
             )
             self.update_status("Erreur lors de l'exécution de l'algorithme")
 
+    def vogels_algorithm(self):
+        """Implementation of Vogel's Approximation Method"""
+        # Make copies of supply and demand to avoid modifying originals
+        supply = self.supply.copy()
+        demand = self.demand.copy()
+        costs = [row.copy() for row in self.costs]
+
+        solution = {}
+        total_cost = 0
+
+        while True:
+            # Calculate penalty for each row and column
+            row_penalties = []
+            for i in range(len(supply)):
+                if supply[i] == 0:
+                    row_penalties.append(-1)
+                    continue
+                row = [costs[i][j] for j in range(len(demand)) if demand[j] > 0]
+                if len(row) < 2:
+                    row_penalties.append(0)
+                else:
+                    row_sorted = sorted(row)
+                    row_penalties.append(row_sorted[1] - row_sorted[0])
+
+            col_penalties = []
+            for j in range(len(demand)):
+                if demand[j] == 0:
+                    col_penalties.append(-1)
+                    continue
+                col = [costs[i][j] for i in range(len(supply)) if supply[i] > 0]
+                if len(col) < 2:
+                    col_penalties.append(0)
+                else:
+                    col_sorted = sorted(col)
+                    col_penalties.append(col_sorted[1] - col_sorted[0])
+
+            # Find maximum penalty
+            max_row_penalty = max(row_penalties)
+            max_col_penalty = max(col_penalties)
+
+            if max_row_penalty < 0 and max_col_penalty < 0:
+                break  # All allocations done
+
+            if max_row_penalty >= max_col_penalty:
+                # Process row with max penalty
+                i = row_penalties.index(max_row_penalty)
+                # Find minimum cost in this row
+                min_cost = float("inf")
+                best_j = -1
+                for j in range(len(demand)):
+                    if demand[j] > 0 and costs[i][j] < min_cost:
+                        min_cost = costs[i][j]
+                        best_j = j
+            else:
+                # Process column with max penalty
+                j = col_penalties.index(max_col_penalty)
+                # Find minimum cost in this column
+                min_cost = float("inf")
+                best_i = -1
+                for i in range(len(supply)):
+                    if supply[i] > 0 and costs[i][j] < min_cost:
+                        min_cost = costs[i][j]
+                        best_i = i
+                i = best_i
+                best_j = j
+
+            # Make allocation
+            allocation = min(supply[i], demand[best_j])
+            solution[(i, best_j)] = allocation
+            total_cost += allocation * costs[i][best_j]
+
+            # Update supply and demand
+            supply[i] -= allocation
+            demand[best_j] -= allocation
+
+            # If supply or demand becomes zero, mark those costs as unavailable
+            if supply[i] == 0:
+                for j in range(len(demand)):
+                    costs[i][j] = float("inf")
+            if demand[best_j] == 0:
+                for i in range(len(supply)):
+                    costs[i][best_j] = float("inf")
+
+        return solution, total_cost
+
     def display_vogels_results(self, data):
-        """Affiche les résultats avec la classe VogelsApproximationPage"""
+        """Affiche les résultats avec la classe VogelsApproximationPage (même style que MoindreCoutPage)"""
         # Effacer la visualisation précédente
         for widget in self.viz_frame.winfo_children():
             widget.destroy()
@@ -457,29 +545,129 @@ class InputVogelsPage(tk.Frame):
         vogels_page.set_data(data)
         vogels_page.pack(fill="both", expand=True)
 
-    def display_transport_table(self):
-        """Display the transport problem data in a table format with visual representation"""
-        # Clear previous visualization
-        for widget in self.viz_frame.winfo_children():
-            widget.destroy()
+    def create_allocation_table(self, parent, solution):
+        """Create a table showing the allocation matrix in grid format"""
+        # Main frame for the table
+        table_frame = ttk.Frame(parent, style="White.TFrame")
+        table_frame.pack()
 
-        # Create a notebook for multiple tabs
-        notebook = ttk.Notebook(self.viz_frame)
-        notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        # Create headers for destinations
+        for j in range(len(self.demand)):
+            header = ttk.Label(
+                table_frame,
+                text=f"D{j+1}",
+                font=("Arial", 9, "bold"),
+                padding=(5, 2),
+                relief="ridge",
+                width=5,
+                anchor="center",
+                background="#f0f0f0",
+            )
+            header.grid(row=0, column=j + 1, sticky="nsew")
 
-        # Tab 1: Data Table
-        table_frame = ttk.Frame(notebook)
-        notebook.add(table_frame, text="Tableau de données")
+        # Create rows for sources and their allocations
+        for i in range(len(self.supply)):
+            # Source label
+            source_label = ttk.Label(
+                table_frame,
+                text=f"S{i+1}",
+                font=("Arial", 9, "bold"),
+                padding=(5, 2),
+                relief="ridge",
+                width=5,
+                anchor="center",
+                background="#e6f3ff",
+            )
+            source_label.grid(row=i + 1, column=0, sticky="nsew")
 
-        # Create a treeview widget to display the table
-        tree = ttk.Treeview(table_frame)
+            # Allocation values
+            for j in range(len(self.demand)):
+                alloc = solution.get((i, j), 0)
+                alloc_label = ttk.Label(
+                    table_frame,
+                    text=str(alloc),
+                    font=("Arial", 9),
+                    padding=(5, 2),
+                    relief="ridge",
+                    width=5,
+                    anchor="center",
+                    background="white",
+                )
+                alloc_label.grid(row=i + 1, column=j + 1, sticky="nsew")
 
-        # Define columns
+        # Configure grid weights
+        for i in range(len(self.supply) + 1):
+            table_frame.grid_rowconfigure(i, weight=1)
+        for j in range(len(self.demand) + 1):
+            table_frame.grid_columnconfigure(j, weight=1)
+
+    def create_allocation_matrix(self, parent, solution):
+        """Create a table showing the allocation matrix"""
+        matrix_frame = ttk.LabelFrame(
+            parent, text="Allocation des ressources", padding=10, style="TLabelframe"
+        )
+        matrix_frame.pack(fill="x", pady=(0, 10))
+
+        # Create a grid layout for the matrix
+        grid_frame = ttk.Frame(matrix_frame)
+        grid_frame.pack()
+
+        # Create headers for destinations
+        for j in range(len(self.demand)):
+            ttk.Label(
+                grid_frame,
+                text=f"D{j+1}",
+                font=("Arial", 9, "bold"),
+                padding=5,
+                relief="ridge",
+                width=8,
+            ).grid(row=0, column=j + 1, sticky="nsew")
+
+        # Create rows for sources and their allocations
+        for i in range(len(self.supply)):
+            # Source label
+            ttk.Label(
+                grid_frame,
+                text=f"S{i+1}",
+                font=("Arial", 9, "bold"),
+                padding=5,
+                relief="ridge",
+                width=8,
+            ).grid(row=i + 1, column=0, sticky="nsew")
+
+            # Allocation values
+            for j in range(len(self.demand)):
+                # Get allocation value (0 if not in solution)
+                alloc = solution.get((i, j), 0)
+                ttk.Label(
+                    grid_frame,
+                    text=str(alloc),
+                    font=("Arial", 9),
+                    padding=5,
+                    relief="ridge",
+                    width=8,
+                ).grid(row=i + 1, column=j + 1, sticky="nsew")
+
+        # Configure grid weights to make cells expand
+        for i in range(len(self.supply) + 1):
+            grid_frame.grid_rowconfigure(i, weight=1)
+        for j in range(len(self.demand) + 1):
+            grid_frame.grid_columnconfigure(j, weight=1)
+
+    def display_simple_transport_table(self, parent):
+        """Display a simple version of the transport problem table"""
+        frame = ttk.LabelFrame(parent, text="Tableau de transport initial", padding=10)
+        frame.pack(fill="x", pady=(15, 5))
+
+        # Create a treeview widget
+        tree = ttk.Treeview(frame)
+
+        # Define columns (sources on rows, destinations on columns)
         columns = (
             ["Source/Dest"] + [f"D{j+1}" for j in range(len(self.demand))] + ["Offre"]
         )
         tree["columns"] = columns
-        tree.column("#0", width=0, stretch=tk.NO)  # Hide first empty column
+        tree.column("#0", width=0, stretch=tk.NO)
 
         # Format columns
         tree.column("Source/Dest", anchor=tk.W, width=100)
@@ -504,114 +692,178 @@ class InputVogelsPage(tk.Frame):
         values = ["Demande"] + [str(d) for d in self.demand] + [str(sum(self.demand))]
         tree.insert("", tk.END, values=values)
 
-        tree.pack(fill="both", expand=True, padx=5, pady=5)
+        tree.pack(fill="x")
 
-        # Tab 2: Compact Heatmap
-        heatmap_frame = ttk.Frame(notebook)
-        notebook.add(heatmap_frame, text="Matrice des Coûts")
+    def display_transport_table(self):
+        """Display the transport problem data in a table format matching the image style"""
+        # Clear previous visualization
+        for widget in self.viz_frame.winfo_children():
+            widget.destroy()
 
-        # Create a smaller figure for the heatmap
-        fig, ax = plt.subplots(figsize=(6, 4))  # Reduced size
-        fig.patch.set_facecolor("#f0f0f0")
-        ax.set_facecolor("#f0f0f0")
+        # Create main container with white background
+        container = ttk.Frame(self.viz_frame, style="White.TFrame")
+        container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Convert costs to numpy array
-        cost_matrix = np.array(self.costs)
+        # Title
+        ttk.Label(
+            container,
+            text="Tableau de Transport",
+            font=("Arial", 12, "bold"),
+            foreground="#2c3e50",
+            background="white",
+        ).pack(anchor="w", pady=(0, 10))
 
-        # Create heatmap with color scale
-        im = ax.imshow(cost_matrix, cmap="YlOrRd")
+        # Create frame for the table
+        table_frame = ttk.Frame(container, style="White.TFrame")
+        table_frame.pack(fill="x")
 
-        # Add colorbar
-        cbar = ax.figure.colorbar(im, ax=ax, shrink=0.7)
-        cbar.ax.set_ylabel("Coût", rotation=-90, va="bottom")
-
-        # Show all ticks and label them
-        ax.set_xticks(np.arange(len(self.demand)))
-        ax.set_yticks(np.arange(len(self.supply)))
-        ax.set_xticklabels([f"D{j+1}" for j in range(len(self.demand))])
-        ax.set_yticklabels([f"S{i+1}" for i in range(len(self.supply))])
-
-        # Rotate the tick labels
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-        # Add text annotations
-        for i in range(len(self.supply)):
-            for j in range(len(self.demand)):
-                ax.text(
-                    j,
-                    i,
-                    f"{self.costs[i][j]}",
-                    ha="center",
-                    va="center",
-                    color="black",
-                    fontsize=8,
-                )  # Smaller font size
-
-        ax.set_title("Matrice des Coûts", pad=10, fontsize=10)
-        fig.tight_layout()
-
-        # Embed the heatmap in tkinter
-        canvas = FigureCanvasTkAgg(fig, master=heatmap_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True)
-
-        # Tab 3: Compact Transport Visualization
-        visual_frame = ttk.Frame(notebook)
-        notebook.add(visual_frame, text="Schéma")
-
-        # Create a smaller figure
-        fig2, ax2 = plt.subplots(figsize=(6, 4))  # Reduced size
-        fig2.patch.set_facecolor("#f0f0f0")
-        ax2.set_facecolor("#f0f0f0")
-        ax2.axis("off")
-
-        # Draw sources (left side)
-        for i, supply in enumerate(self.supply):
-            ax2.text(-0.1, 0.9 - i * 0.2, f"S{i+1}", fontsize=10, ha="right")
-            ax2.text(
-                0,
-                0.9 - i * 0.2,
-                f"{supply}",
-                fontsize=10,
-                bbox=dict(facecolor="lightblue", alpha=0.5),
+        # Create headers for destinations
+        for j in range(len(self.demand)):
+            header = ttk.Label(
+                table_frame,
+                text=f"D{j+1}",
+                font=("Arial", 9, "bold"),
+                padding=(5, 2),
+                relief="ridge",
+                width=8,
+                anchor="center",
+                background="#f0f0f0",  # Light gray background for headers
             )
+            header.grid(row=0, column=j + 1, sticky="nsew")
 
-        # Draw destinations (right side)
-        for j, demand in enumerate(self.demand):
-            ax2.text(0.9, 0.9 - j * 0.2, f"D{j+1}", fontsize=10)
-            ax2.text(
-                1.0,
-                0.9 - j * 0.2,
-                f"{demand}",
-                fontsize=10,
-                bbox=dict(facecolor="lightgreen", alpha=0.5),
-            )
+        # Create supply header
+        supply_header = ttk.Label(
+            table_frame,
+            text="Offre",
+            font=("Arial", 9, "bold"),
+            padding=(5, 2),
+            relief="ridge",
+            width=8,
+            anchor="center",
+            background="#f0f0f0",
+        )
+        supply_header.grid(row=0, column=len(self.demand) + 1, sticky="nsew")
 
-        # Draw cost matrix in the center (simplified)
+        # Create rows for sources
         for i in range(len(self.supply)):
+            # Source label with light blue background
+            source_label = ttk.Label(
+                table_frame,
+                text=f"S{i+1}",
+                font=("Arial", 9, "bold"),
+                padding=(5, 2),
+                relief="ridge",
+                width=8,
+                anchor="center",
+                background="#e6f3ff",  # Light blue background for sources
+            )
+            source_label.grid(row=i + 1, column=0, sticky="nsew")
+
+            # Cost values with white background
             for j in range(len(self.demand)):
-                ax2.text(
-                    0.4 + j * 0.15,
-                    0.9 - i * 0.2,
-                    f"{self.costs[i][j]}",
-                    fontsize=8,
-                    ha="center",
-                    va="center",
+                cost_label = ttk.Label(
+                    table_frame,
+                    text=str(self.costs[i][j]),
+                    font=("Arial", 9),
+                    padding=(5, 2),
+                    relief="ridge",
+                    width=8,
+                    anchor="center",
+                    background="white",
                 )
+                cost_label.grid(row=i + 1, column=j + 1, sticky="nsew")
 
-        ax2.set_title("Problème de Transport", pad=10, fontsize=10)
-        ax2.set_xlim(-0.2, 1.2)
-        ax2.set_ylim(0, 1)
+            # Supply value with light blue background
+            supply_label = ttk.Label(
+                table_frame,
+                text=str(self.supply[i]),
+                font=("Arial", 9),
+                padding=(5, 2),
+                relief="ridge",
+                width=8,
+                anchor="center",
+                background="#e6f3ff",
+            )
+            supply_label.grid(row=i + 1, column=len(self.demand) + 1, sticky="nsew")
 
-        canvas2 = FigureCanvasTkAgg(fig2, master=visual_frame)
-        canvas2.draw()
-        canvas2.get_tk_widget().pack(fill="both", expand=True)
+        # Create demand row
+        demand_label = ttk.Label(
+            table_frame,
+            text="Demande",
+            font=("Arial", 9, "bold"),
+            padding=(5, 2),
+            relief="ridge",
+            width=8,
+            anchor="center",
+            background="#f0f0f0",
+        )
+        demand_label.grid(row=len(self.supply) + 1, column=0, sticky="nsew")
 
-    def calculate_initial_cost(self):
-        """Calculate a dummy initial cost (replace with actual Vogel implementation)"""
-        # This is just a placeholder calculation
-        total = 0
-        for i in range(len(self.supply)):
-            for j in range(len(self.demand)):
-                total += self.costs[i][j] * min(self.supply[i], self.demand[j])
-        return total / 2  # Arbitrary reduction for demo purposes
+        for j in range(len(self.demand)):
+            d_label = ttk.Label(
+                table_frame,
+                text=str(self.demand[j]),
+                font=("Arial", 9),
+                padding=(5, 2),
+                relief="ridge",
+                width=8,
+                anchor="center",
+                background="white",
+            )
+            d_label.grid(row=len(self.supply) + 1, column=j + 1, sticky="nsew")
+
+        # Total demand/supply cell
+        total_label = ttk.Label(
+            table_frame,
+            text=str(sum(self.demand)),
+            font=("Arial", 9),
+            padding=(5, 2),
+            relief="ridge",
+            width=8,
+            anchor="center",
+            background="#f0f0f0",
+        )
+        total_label.grid(
+            row=len(self.supply) + 1, column=len(self.demand) + 1, sticky="nsew"
+        )
+
+        # Configure grid weights
+        for i in range(len(self.supply) + 2):
+            table_frame.grid_rowconfigure(i, weight=1)
+        for j in range(len(self.demand) + 2):
+            table_frame.grid_columnconfigure(j, weight=1)
+
+        # Add some padding
+        table_frame.grid(padx=5, pady=5)
+
+        # Add summary information
+        summary_frame = ttk.Frame(container, style="White.TFrame")
+        summary_frame.pack(fill="x", pady=(10, 0))
+
+        ttk.Label(
+            summary_frame,
+            text=f"Nombre de sources: {len(self.supply)}",
+            font=("Arial", 9),
+            background="white",
+        ).pack(side="left", padx=10)
+
+        ttk.Label(
+            summary_frame,
+            text=f"Nombre de destinations: {len(self.demand)}",
+            font=("Arial", 9),
+            background="white",
+        ).pack(side="left", padx=10)
+
+        ttk.Label(
+            summary_frame,
+            text=f"Offre totale: {sum(self.supply)}",
+            font=("Arial", 9),
+            background="white",
+        ).pack(side="left", padx=10)
+
+        ttk.Label(
+            summary_frame,
+            text=f"Demande totale: {sum(self.demand)}",
+            font=("Arial", 9),
+            background="white",
+        ).pack(side="left", padx=10)

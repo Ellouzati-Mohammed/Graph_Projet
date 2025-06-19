@@ -34,16 +34,32 @@ class MoindreCoutPage(tk.Frame):
         result_frame = tk.Frame(main_frame)
         result_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-        result_text = "Résultats de la méthode du Moindre Coût :\n\n"
-        result_text += f"Coût total: {total_cost:.2f}\n\n"
-        result_text += "Matrice d'allocation:\n"
-        for row in allocation:
-            result_text += " ".join(f"{val:>5.0f}" for val in row) + "\n"
+        # Title label
+        title_label = tk.Label(result_frame, text="Résultats de l'algorithme", font=("Arial", 11, "bold"), anchor="w", bg="#f0f0f0")
+        title_label.pack(anchor="w", pady=(0, 5))
 
-        label = tk.Label(result_frame, text=result_text, justify="left",
-                        font=("Courier", 12), bg="#f0f0f0")
-        label.pack(padx=10, pady=10)
+        # Status and cost
+        status_text = f"Statut: Succès\nMessage: Solution trouvée\n\nCoût total: {total_cost:.2f}"
+        status_label = tk.Label(result_frame, text=status_text, font=("Arial", 10), anchor="w", justify="left", bg="#f0f0f0")
+        status_label.pack(anchor="w", pady=(0, 10))
 
+        # Allocation matrix as a grid of labels
+        matrix_frame = tk.Frame(result_frame, bg="#f0f0f0")
+        matrix_frame.pack(pady=(0, 10))
+        n_rows, n_cols = allocation.shape
+        # Header row
+        tk.Label(matrix_frame, text="", bg="#f0f0f0").grid(row=0, column=0, padx=2, pady=2)
+        for j in range(n_cols):
+            tk.Label(matrix_frame, text=f"D{j+1}", font=("Arial", 10, "bold"), bg="#f0f0f0").grid(row=0, column=j+1, padx=2, pady=2)
+        # Data rows
+        for i in range(n_rows):
+            tk.Label(matrix_frame, text=f"S{i+1}", font=("Arial", 10, "bold"), bg="#f0f0f0").grid(row=i+1, column=0, padx=2, pady=2)
+            for j in range(n_cols):
+                val = allocation[i, j]
+                bg_color = "#dbefff" if val > 0 else "white"
+                tk.Label(matrix_frame, text=f"{int(val)}", width=6, font=("Arial", 10), bg=bg_color, relief="solid", borderwidth=1).grid(row=i+1, column=j+1, padx=2, pady=2)
+
+        # Plot on the right
         fig, ax = plt.subplots(figsize=(8, 6))
         self.plot_transport(allocation, costs, ax)
         canvas = FigureCanvasTkAgg(fig, master=main_frame)

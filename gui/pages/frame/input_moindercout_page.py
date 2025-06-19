@@ -7,6 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from Visualisation.Programation_leaner.MoindreCoutPage import MoindreCoutPage
 
+
 class InputMoinderCoutPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -269,21 +270,25 @@ class InputMoinderCoutPage(tk.Frame):
             try:
                 with open(file_path, newline="", encoding="utf-8") as csvfile:
                     reader = csv.reader(csvfile)
-                    data = list(reader)
+                    data = [row for row in reader if row]  # Skip empty rows
 
                 if len(data) < 3:
                     raise ValueError(
                         "Le fichier CSV doit contenir au moins 3 lignes : offres, demandes et coûts"
                     )
 
-                # Première ligne : offres
-                self.supply = [float(x) for x in data[0]]
+                # Première ligne : offres (filter out empty strings)
+                self.supply = [float(x) for x in data[0] if x.strip()]
 
-                # Deuxième ligne : demandes
-                self.demand = [float(x) for x in data[1]]
+                # Deuxième ligne : demandes (filter out empty strings)
+                self.demand = [float(x) for x in data[1] if x.strip()]
 
-                # Reste : matrice des coûts
-                self.costs = [[float(x) for x in row] for row in data[2:]]
+                # Reste : matrice des coûts (filter out empty strings in each row)
+                self.costs = [
+                    [float(x) for x in row if x.strip()]
+                    for row in data[2:]
+                    if any(x.strip() for x in row)
+                ]
 
                 self.validate_data()
                 self.update_data_info()
@@ -426,11 +431,7 @@ class InputMoinderCoutPage(tk.Frame):
             self.placeholder.pack_forget()
 
             # Créer les données pour MoindreCoutPage
-            data = {
-                'supply': self.supply,
-                'demand': self.demand,
-                'costs': self.costs
-            }
+            data = {"supply": self.supply, "demand": self.demand, "costs": self.costs}
 
             # Afficher les résultats avec MoindreCoutPage
             self.display_moindre_cout_results(data)

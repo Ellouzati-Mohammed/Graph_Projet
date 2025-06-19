@@ -33,44 +33,61 @@ class NorthwestPage(tk.Frame):
         main_frame = tk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Affichage des résultats textuels
+        # Result panel (left)
         result_frame = tk.Frame(main_frame)
         result_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-        result_text = "Résultats du transport:\n\n"
-        result_text += f"Statut: {'Succès' if success else 'Erreur'}\n"
-        result_text += f"Message: {message}\n"
-        
+        # Title label
+        title_label = tk.Label(result_frame, text="Résultats de l'algorithme", font=("Arial", 11, "bold"), anchor="w", bg="#f0f0f0")
+        title_label.pack(anchor="w", pady=(0, 5))
+
+        # Status and cost
+        status_text = f"Statut: {'Succès' if success else 'Erreur'}\nMessage: {message}"
         if success:
-            result_text += f"\nCoût total: {total_cost:.2f}\n"
-            result_text += "\nMatrice d'allocation:\n"
-            for row in alloc:
-                result_text += "  ".join(f"{x:.0f}" for x in row) + "\n"
+            status_text += f"\n\nCoût total: {total_cost:.2f}"
+        status_label = tk.Label(result_frame, text=status_text, font=("Arial", 10), anchor="w", justify="left", bg="#f0f0f0")
+        status_label.pack(anchor="w", pady=(0, 10))
 
-        label = tk.Label(result_frame, text=result_text, justify="left",
-                         font=("Courier", 12), bg="#f0f0f0")
-        label.pack(padx=10, pady=10)
-
-        # Visualisation matricielle
+        # Allocation matrix as a grid of labels (if success)
         if success:
-            fig, ax = plt.subplots(figsize=(6, 4))
-            ax.axis('off')
-            
-            # Création du tableau
-            table = plt.table(
-                cellText=alloc.astype(int),
-                cellColours=[[('#e0f0ff' if alloc[i,j] > 0 else 'white') for j in range(alloc.shape[1])] for i in range(alloc.shape[0])],
-                loc='center',
-                cellLoc='center',
-                colLabels=[f"D{j+1}" for j in range(alloc.shape[1])],
-                rowLabels=[f"S{i+1}" for i in range(alloc.shape[0])]
-            )
-            
-            table.scale(1, 2)
-            table.set_fontsize(14)
-            ax.set_title("Allocation des ressources", pad=20)
+            matrix_frame = tk.Frame(result_frame, bg="#f0f0f0")
+            matrix_frame.pack(pady=(0, 10))
+            n_rows, n_cols = alloc.shape
+            # Header row
+            tk.Label(matrix_frame, text="", bg="#f0f0f0").grid(row=0, column=0, padx=2, pady=2)
+            for j in range(n_cols):
+                tk.Label(matrix_frame, text=f"D{j+1}", font=("Arial", 10, "bold"), bg="#f0f0f0").grid(row=0, column=j+1, padx=2, pady=2)
+            # Data rows
+            for i in range(n_rows):
+                tk.Label(matrix_frame, text=f"S{i+1}", font=("Arial", 10, "bold"), bg="#f0f0f0").grid(row=i+1, column=0, padx=2, pady=2)
+                for j in range(n_cols):
+                    val = alloc[i, j]
+                    bg_color = "#dbefff" if val > 0 else "white"
+                    tk.Label(matrix_frame, text=f"{int(val)}", width=6, font=("Arial", 10), bg=bg_color, relief="solid", borderwidth=1).grid(row=i+1, column=j+1, padx=2, pady=2)
 
-            # Intégration dans Tkinter
+        # Plot on the right (if success)
+        if success:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            # Prepare allocation as numpy array
+            alloc_arr = np.array(alloc)
+            n_fournisseurs, n_clients = alloc_arr.shape
+            bottom = np.zeros(n_fournisseurs)
+            colors = plt.cm.tab20(np.linspace(0, 1, n_clients))
+            for j in range(n_clients):
+                ax.bar(
+                    range(n_fournisseurs),
+                    alloc_arr[:, j],
+                    bottom=bottom,
+                    label=f"Client {j+1}",
+                    color=colors[j]
+                )
+                bottom += alloc_arr[:, j]
+            ax.set_xticks(range(n_fournisseurs))
+            ax.set_xticklabels([f"Fourn. {i+1}" for i in range(n_fournisseurs)])
+            ax.set_ylabel("Quantité allouée")
+            ax.set_title("Répartition des allocations par fournisseur (Nord-Ouest)")
+            ax.legend(title="Clients", bbox_to_anchor=(1.05, 1), loc='upper left')
+            plt.tight_layout()
             canvas = FigureCanvasTkAgg(fig, master=main_frame)
             canvas.draw()
             self.canvas_widget = canvas.get_tk_widget()
