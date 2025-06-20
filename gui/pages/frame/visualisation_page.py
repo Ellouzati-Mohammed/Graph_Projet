@@ -7,7 +7,7 @@ from Visualisation.graph import DjikstraPage
 from data.graph_data import graph
 from Visualisation.graph.WelshPowellPage import WelshPowellPage
 from Visualisation.graph.DjikstraPage import DijkstraPage
-from Visualisation.Programation_leaner.SimplexPage import SimplexePage
+from Visualisation.Programation_leaner.SimplexPage import SimplexPage
 from Visualisation.Programation_leaner.MoindreCoutPage import MoindreCoutPage
 from Visualisation.Programation_leaner.vogelsPage import VogelsApproximationPage
 from Visualisation.Programation_leaner.NorthWestPage import NorthwestPage
@@ -73,7 +73,7 @@ class VisualisationFrame(tk.Frame):
             elif algo_name == "Dijkstra":
                 page = DijkstraPage(self.content_frame)
             elif algo_name == "Simplex":
-                page = SimplexePage(self.content_frame)
+                page = SimplexPage(self.content_frame, self.controller, self.current_data)
                 if self.current_data:
                     page.set_data(self.current_data)
             elif algo_name == "Kruskal":

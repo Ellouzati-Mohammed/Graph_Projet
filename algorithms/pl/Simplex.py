@@ -1,359 +1,225 @@
 import numpy as np
-from typing import Tuple, Union, Dict, List
-
-EPS = 1e-8
-
 
 class SimplexSolver:
-    def __init__(self):
-        self.max_iterations = 1000
-        self.epsilon = 1e-10  # For floating point comparisons
-
-    def solve(
-        self,
-        c: List[float],
-        A: List[List[float]],
-        b: List[float],
-        optimization_type: str = "max",
-    ) -> Dict:
-        """
-        Main solver method that handles both maximization and minimization problems
-        using appropriate simplex methods.
-        """
-        try:
-            # Validate input dimensions
-            self._validate_inputs(c, A, b)
-
-            # Convert minimization to maximization
-            if optimization_type == "min":
-                c = [-x for x in c]
-
-            # First try standard simplex
-            status, message, solution, Z = self.simplex(c, A, b)
-
-            if status:
-                if optimization_type == "min":
-                    Z = -Z  # Convert back to minimization value
-                return {
-                    "status": "optimal",
-                    "message": message,
-                    "solution": solution,
-                    "optimal_value": Z,
-                    "method": "standard simplex",
-                }
-
-            # If standard simplex failed, try two-phase method
-            status, message, solution, Z = self.two_phase_simplex(c, A, b)
-
-            if status:
-                if optimization_type == "min":
-                    Z = -Z
-                return {
-                    "status": "optimal",
-                    "message": message,
-                    "solution": solution,
-                    "optimal_value": Z,
-                    "method": "two-phase simplex",
-                }
-
-            # If both methods failed
-            return {
-                "status": "failed",
-                "message": message,
-                "solution": None,
-                "optimal_value": None,
-                "method": None,
-            }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": str(e),
-                "solution": None,
-                "optimal_value": None,
-                "method": None,
-            }
-
-    def _validate_inputs(self, c: List[float], A: List[List[float]], b: List[float]):
-        """Validate the dimensions of input matrices"""
-        if not all(len(row) == len(c) for row in A):
-            raise ValueError(
-                "Each constraint must have same number of coefficients as objective function"
-            )
-        if len(A) != len(b):
-            raise ValueError(
-                "Number of constraints must match number of right-hand side values"
-            )
-        if len(c) == 0 or len(A) == 0:
-            raise ValueError(
-                "Problem must have at least one variable and one constraint"
-            )
-
-    def simplex(
-        self, c: List[float], A: List[List[float]], b: List[float]
-    ) -> Tuple[bool, str, List[float], float]:
-        """
-        Standard simplex method implementation for maximization problems.
-        Returns (success, message, solution, optimal_value)
-        """
-        n_var = len(c)
-        n_constr = len(A)
-        iterations = 0
-
-        # Create initial tableau
-        tableau = self._create_initial_tableau(c, A, b)
-
-        # Main simplex loop
-        while iterations < self.max_iterations:
-            iterations += 1
-
-            # Check if optimal
-            if all(x >= -self.epsilon for x in tableau[-1, :-1]):
-                break
-
-            # Select entering variable (most negative reduced cost)
-            entering = np.argmin(tableau[-1, :-1])
-
-            # Calculate ratios
-            ratios = []
-            for i in range(n_constr):
-                if tableau[i, entering] > self.epsilon:
-                    ratios.append(tableau[i, -1] / tableau[i, entering])
-                else:
-                    ratios.append(np.inf)
-
-            # Check for unboundedness
-            if all(r == np.inf for r in ratios):
-                return False, "Problem is unbounded", None, None
-
-            # Select leaving variable
-            leaving = np.argmin(ratios)
-
-            # Perform pivot operation
-            self._pivot(tableau, leaving, entering)
-
-        if iterations >= self.max_iterations:
-            return False, "Maximum iterations reached", None, None
-
-        # Extract solution
-        solution = np.zeros(n_var)
-        for j in range(n_var):
-            col = tableau[:-1, j]
-            if (
-                np.sum(
-                    np.abs(col - (np.arange(len(col)) == np.argmax(col)).astype(float))
-                )
-                < self.epsilon
-            ):
-                solution[j] = tableau[np.argmax(col), -1]
-
-        Z = tableau[-1, -1]
-
-        return True, "Optimal solution found", solution, Z
-
-    def two_phase_simplex(
-        self, c: List[float], A: List[List[float]], b: List[float]
-    ) -> Tuple[bool, str, List[float], float]:
-        """
-        Two-phase simplex method for problems without obvious initial feasible solutions.
-        """
-        n_var = len(c)
-        n_constr = len(A)
-
-        # Phase 1: Create auxiliary problem to find feasible solution
-        aux_c = [0] * n_var + [-1] * n_constr
-        aux_A = [
-            row + [0] * i + [1] + [0] * (n_constr - i - 1) for i, row in enumerate(A)
-        ]
-
-        # Solve phase 1
-        tableau = self._create_initial_tableau(aux_c, aux_A, b)
-        basis = list(range(n_var, n_var + n_constr))  # Artificial variables in basis
-
-        # Optimize phase 1
-        success, message, _, _ = self._simplex_phase(tableau, basis, phase=1)
-
-        if not success or abs(tableau[-1, -1]) > self.epsilon:
-            return False, "Problem is infeasible", None, None
-
-        # Phase 2: Remove artificial variables and solve original problem
-        # Remove artificial variable columns
-        tableau = np.delete(tableau, range(n_var, n_var + n_constr), axis=1)
-
-        # Restore original objective
-        tableau[-1, :n_var] = -np.array(c)
-        tableau[-1, -1] = 0
-
-        # Update reduced costs
-        for j in range(n_var):
-            if j in basis:
-                pivot_row = basis.index(j)
-                tableau[-1] -= tableau[-1, j] * tableau[pivot_row]
-
-        # Solve phase 2
-        success, message, solution, Z = self._simplex_phase(tableau, basis, phase=2)
-
-        if not success:
-            return False, message, None, None
-
-        return True, message, solution[:n_var], Z
-
-    def _simplex_phase(
-        self, tableau: np.ndarray, basis: List[int], phase: int
-    ) -> Tuple[bool, str, List[float], float]:
-        """Helper method for simplex phases"""
-        iterations = 0
-        n_constr = tableau.shape[0] - 1
-
-        while iterations < self.max_iterations:
-            iterations += 1
-
-            # Check if optimal
-            if all(x >= -self.epsilon for x in tableau[-1, :-1]):
-                break
-
-            # Select entering variable
-            entering = np.argmin(tableau[-1, :-1])
-
-            # Calculate ratios
-            ratios = []
-            for i in range(n_constr):
-                if tableau[i, entering] > self.epsilon:
-                    ratios.append(tableau[i, -1] / tableau[i, entering])
-                else:
-                    ratios.append(np.inf)
-
-            if all(r == np.inf for r in ratios):
-                if phase == 1:
-                    return False, "Phase 1 unbounded (shouldn't happen)", None, None
-                else:
-                    return False, "Problem is unbounded", None, None
-
-            # Select leaving variable
-            leaving = np.argmin(ratios)
-
-            # Update basis
-            basis[leaving] = entering
-
-            # Perform pivot
-            self._pivot(tableau, leaving, entering)
-
-        if iterations >= self.max_iterations:
-            return False, "Maximum iterations reached", None, None
-
-        # Extract solution
-        solution = np.zeros(tableau.shape[1] - 1)
-        for j in range(len(solution)):
-            if j in basis:
-                solution[j] = tableau[basis.index(j), -1]
-
-        Z = tableau[-1, -1]
-
-        return True, "Optimal solution found", solution, Z
-
-    def _create_initial_tableau(
-        self, c: List[float], A: List[List[float]], b: List[float]
-    ) -> np.ndarray:
-        """Create initial simplex tableau"""
-        n_var = len(c)
-        n_constr = len(A)
-
-        tableau = np.zeros((n_constr + 1, n_var + n_constr + 1))
-
-        # Fill constraints
-        for i in range(n_constr):
-            tableau[i, :n_var] = A[i]
-            tableau[i, n_var + i] = 1  # Slack variable
-            tableau[i, -1] = b[i]
-
-        # Fill objective
-        tableau[-1, :n_var] = -np.array(c)
-
-        return tableau
-
-    def _pivot(self, tableau: np.ndarray, leaving: int, entering: int):
-        """Perform pivot operation on tableau"""
-        # Normalize pivot row
-        pivot_val = tableau[leaving, entering]
-        tableau[leaving] /= pivot_val
-
-        # Update other rows
-        for i in range(tableau.shape[0]):
-            if i != leaving and abs(tableau[i, entering]) > self.epsilon:
-                multiplier = tableau[i, entering]
-                tableau[i] -= multiplier * tableau[leaving]
-
-    def robust_simplex(
-        self,
-        c: List[float],
-        A: List[List[float]],
-        b: List[float],
-        optimization_type: str = None,
-    ) -> Dict:
-        """
-        Try all available simplex methods in order and return the first successful solution.
-        """
-        if optimization_type is None:
-            # Try both max and min if not specified
-            max_result = self.solve(c, A, b, "max")
-            if max_result["status"] == "optimal":
-                return max_result
-            return self.solve(c, A, b, "min")
-
-        return self.solve(c, A, b, optimization_type)
-
-
-# Example usage
-if __name__ == "__main__":
-    solver = SimplexSolver()
-
-    # Example problem
-    c = [3, 2]  # Objective coefficients
-    A = [[1, 1], [2, 1], [1, 0]]  # Constraint coefficients
-    b = [4, 5, 2]  # Right-hand side values
-
-    # Solve with maximization
-    result = solver.robust_simplex(c, A, b, "max")
-    print("\nMaximization results:")
-    print(f"Status: {result['status']}")
-    print(f"Message: {result['message']}")
-    if result["solution"] is not None:
-        print(f"Solution: {result['solution']}")
-        print(f"Optimal value: {result['optimal_value']}")
-        print(f"Method used: {result['method']}")
-
-    # Solve with minimization (same problem but minimized)
-    result = solver.robust_simplex(c, A, b, "min")
-    print("\nMinimization results:")
-    print(f"Status: {result['status']}")
-    print(f"Message: {result['message']}")
-    if result["solution"] is not None:
-        print(f"Solution: {result['solution']}")
-        print(f"Optimal value: {result['optimal_value']}")
-        print(f"Method used: {result['method']}")
-
-    # Test with your unbounded problem
-    c = [2, 3]
-    A = [[-1, 1], [1, -2]]
-    b = [-1, -2]
-
-    result = solver.robust_simplex(c, A, b, "max")
-    print("\nUnbounded problem results:")
-    print(f"Status: {result['status']}")
-    print(f"Message: {result['message']}")
-
-# Add this at the bottom to make the class available for import
-__all__ = ["SimplexSolver"]
-
-# --- Add these top-level wrappers for import ---
-def simplexe_max(c, A, b):
-    solver = SimplexSolver()
-    return solver.simplex(c, A, b)
-
-def two_phase_simplex(c, A, b, maximize=True):
-    solver = SimplexSolver()
-    return solver.two_phase_simplex(c, A, b)
-
-def robust_simplex(A, b, c, n, m, optimization_type='max'):
-    solver = SimplexSolver()
-    return solver.robust_simplex(c, A, b, optimization_type)
+    def __init__(self, c, A, b, relations, opt_type='max'):
+        self.c = np.array(c, dtype=float)
+        self.A = np.array(A, dtype=float)
+        self.b = np.array(b, dtype=float)
+        self.relations = relations
+        self.opt_type = opt_type.lower()
+
+        if self.opt_type == 'min':
+            self.c = -self.c
+
+        self.n_vars = len(self.c)
+        self.n_constraints = len(self.b)
+        
+        self.tableau = None
+        self.basis = None
+        self.status = "not_solved"
+        self.solution = None
+        self.optimal_value = None
+        self.artificial_vars = []
+
+    def solve(self):
+        self._prepare_tableau()
+
+        if self.artificial_vars:
+            phase1_success = self._solve_phase1()
+            if not phase1_success:
+                self.status = "infeasible"
+                if self.opt_type == 'min':
+                    self.c = -self.c # Restore original objective
+                return self.get_results()
+
+        phase2_success = self._solve_phase2()
+        if not phase2_success:
+            self.status = "unbounded"
+        else:
+            self.status = "optimal"
+            self._extract_solution()
+        
+        if self.opt_type == 'min':
+            self.c = -self.c # Restore original objective
+
+        return self.get_results()
+
+    def _prepare_tableau(self):
+        # Standardize relations: < becomes <=, > becomes >=
+        self.relations = ['<=' if r == '<' else r for r in self.relations]
+        self.relations = ['>=' if r == '>' else r for r in self.relations]
+
+        # Standardize b to be non-negative
+        for i in range(self.n_constraints):
+            if self.b[i] < 0:
+                self.b[i] *= -1
+                self.A[i] *= -1
+                if self.relations[i] == '<=': self.relations[i] = '>='
+                elif self.relations[i] == '>=': self.relations[i] = '<='
+        
+        n_slack = self.relations.count('<=')
+        n_surplus = self.relations.count('>=')
+        
+        self.artificial_vars = []
+        art_var_counter = 0
+
+        tableau_A = self.A.copy()
+        identity_part = np.zeros((self.n_constraints, n_slack + n_surplus))
+        slack_idx, surplus_idx = 0, 0
+
+        for i, rel in enumerate(self.relations):
+            if rel == '<=':
+                identity_part[i, slack_idx] = 1
+                slack_idx += 1
+            elif rel == '>=':
+                identity_part[i, n_slack + surplus_idx] = -1
+                surplus_idx += 1
+            # For '=' and '>=' we will add artificial vars later
+
+        tableau_A = np.hstack((tableau_A, identity_part))
+        
+        art_cols = []
+        for i, rel in enumerate(self.relations):
+            if rel == '>=' or rel == '=':
+                art_col = np.zeros((self.n_constraints, 1))
+                art_col[i, 0] = 1
+                art_cols.append(art_col)
+                self.artificial_vars.append(self.n_vars + n_slack + n_surplus + art_var_counter)
+                art_var_counter += 1
+        
+        if art_cols:
+            tableau_A = np.hstack([tableau_A] + art_cols)
+
+        # Full tableau with objective row and RHS
+        n_total_vars = tableau_A.shape[1]
+        self.tableau = np.zeros((self.n_constraints + 1, n_total_vars + 1))
+        self.tableau[:-1, :-1] = tableau_A
+        self.tableau[:-1, -1] = self.b
+
+        # Objective row
+        self.tableau[-1, :self.n_vars] = -self.c
+        
+        self.basis = [0] * self.n_constraints
+        s_idx, art_idx_count = 0, 0
+        for i in range(self.n_constraints):
+            if self.relations[i] == '<=':
+                self.basis[i] = self.n_vars + s_idx
+                s_idx += 1
+            else: # '>=' or '='
+                self.basis[i] = self.artificial_vars[art_idx_count]
+                art_idx_count += 1
+    
+    def _solve_phase1(self):
+        original_obj = self.tableau[-1, :].copy()
+        
+        # Phase 1 objective: minimize sum of artificial variables
+        phase1_obj = np.zeros(self.tableau.shape[1])
+        phase1_obj[self.artificial_vars] = 1
+        self.tableau[-1, :] = phase1_obj
+        
+        # Make basis columns 0 in objective row
+        for i, basis_var in enumerate(self.basis):
+            if basis_var in self.artificial_vars:
+                self.tableau[-1, :] -= self.tableau[i, :]
+
+        self._run_simplex()
+        
+        if self.tableau[-1, -1] > 1e-6: # Infeasible if sum of artificials > 0
+            return False
+        
+        # Restore original objective, remove artificial vars
+        self.tableau[-1, :] = original_obj
+        
+        # Make basis columns 0 in objective row again
+        for i, var_idx in enumerate(self.basis):
+            if self.tableau[-1, var_idx] != 0:
+                self.tableau[-1, :] -= self.tableau[-1, var_idx] * self.tableau[i, :]
+
+        # Drop artificial variable columns
+        self.tableau = np.delete(self.tableau, self.artificial_vars, axis=1)
+
+        return True
+
+    def _solve_phase2(self):
+        self._run_simplex()
+        # Check for unboundedness
+        for col in range(self.tableau.shape[1] -1):
+            if self.tableau[-1, col] < -1e-6:
+                if np.all(self.tableau[:-1, col] <= 1e-6):
+                    self.status = "unbounded"
+                    return False # Unbounded
+        return True
+
+    def _run_simplex(self):
+        while np.any(self.tableau[-1, :-1] < -1e-6):
+            pivot_col = np.argmin(self.tableau[-1, :-1])
+            
+            ratios = np.full(self.n_constraints, np.inf)
+            for i in range(self.n_constraints):
+                if self.tableau[i, pivot_col] > 1e-6:
+                    ratios[i] = self.tableau[i, -1] / self.tableau[i, pivot_col]
+            
+            if np.all(ratios == np.inf):
+                self.status = "unbounded" # Should be caught by caller
+                return
+
+            pivot_row = np.argmin(ratios)
+            
+            self.basis[pivot_row] = pivot_col
+            
+            pivot_element = self.tableau[pivot_row, pivot_col]
+            self.tableau[pivot_row, :] /= pivot_element
+            
+            for i in range(self.n_constraints + 1):
+                if i != pivot_row:
+                    self.tableau[i, :] -= self.tableau[i, pivot_col] * self.tableau[pivot_row, :]
+
+    def _extract_solution(self):
+        self.solution = np.zeros(self.n_vars)
+        for i, basis_var in enumerate(self.basis):
+            if basis_var < self.n_vars:
+                self.solution[basis_var] = self.tableau[i, -1]
+        
+        self.optimal_value = self.tableau[-1, -1]
+        if self.opt_type == 'min':
+            self.optimal_value *= -1
+
+    def get_results(self):
+        message_map = {
+            'not_solved': 'Le solveur n\'a pas été exécuté.',
+            'optimal': 'Solution optimale trouvée.',
+            'infeasible': 'Le problème est infaisable.',
+            'unbounded': 'Le problème est non borné.',
+        }
+        return {
+            'status': self.status,
+            'message': message_map.get(self.status, 'Une erreur inconnue est survenue.'),
+            'solution': self.solution.tolist() if self.solution is not None else None,
+            'optimal_value': self.optimal_value,
+            'tableau': self.tableau.tolist() if self.tableau is not None else None
+        }
+
+def robust_simplex(data):
+    """
+    Wrapper function to maintain compatibility with the old API.
+    """
+    try:
+        c = data.get('c')
+        A = data.get('A')
+        b = data.get('b')
+        opt_type = data.get('optimization_type', 'max')
+        relations = data.get('relations')
+
+        if relations is None:
+            # Fallback for old data without relations
+            relations = ['<='] * len(b)
+        
+        if not all([c, A, b, opt_type, relations]):
+            return {'status': 'error', 'message': 'Données d\'entrée manquantes ou invalides.'}
+
+        solver = SimplexSolver(c, A, b, relations, opt_type)
+        return solver.solve()
+    except Exception as e:
+        return {'status': 'error', 'message': f"Une erreur inattendue est survenue: {str(e)}"}
+
+

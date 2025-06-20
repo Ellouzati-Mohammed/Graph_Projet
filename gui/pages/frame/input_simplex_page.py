@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
-from Visualisation.Programation_leaner.SimplexPage import SimplexePage
+from Visualisation.Programation_leaner.SimplexPage import SimplexPage
 
 
 class InputSimplexPage(tk.Frame):
@@ -16,6 +16,7 @@ class InputSimplexPage(tk.Frame):
         self.c = []
         self.A = []
         self.b = []
+        self.relations = []
         self.solution = None
         self.canvas_widget = None
 
@@ -235,6 +236,7 @@ class InputSimplexPage(tk.Frame):
         self.c = []
         self.A = []
         self.b = []
+        self.relations = []
         self.solution = None
 
         # Clear visualization
@@ -266,6 +268,7 @@ class InputSimplexPage(tk.Frame):
                 self.c = data["c"]
                 self.A = data["A"]
                 self.b = data["b"]
+                self.relations = data.get("relations", [])
 
                 self.validate_data()
                 self.update_data_info()
@@ -288,19 +291,32 @@ class InputSimplexPage(tk.Frame):
                     reader = csv.reader(csvfile)
                     data = list(reader)
 
-                if len(data) < 3:
+                if len(data) < 2:
                     raise ValueError(
-                        "Le fichier CSV doit contenir au moins 3 lignes : une pour c, au moins une pour A, et une pour b."
+                        "Le fichier CSV doit contenir au moins 2 lignes : une pour 'c' et au moins une pour une contrainte."
                     )
 
+                self.reset_data()
+
                 # Ligne 1 : coefficients c
-                self.c = [float(x) for x in data[0]]
+                self.c = [float(x.strip()) for x in data[0]]
 
-                # Lignes 2 à n-1 : contraintes A
-                self.A = [[float(x) for x in row] for row in data[1:-1]]
+                # Lignes suivantes : contraintes
+                self.A = []
+                self.b = []
+                self.relations = []
+                valid_relations = ["<", "<=", ">", ">=", "="]
 
-                # Dernière ligne : second membre b
-                self.b = [float(x) for x in data[-1]]
+                for row in data[1:]:
+                    if not row: continue
+                    
+                    relation = row[-2].strip()
+                    if relation not in valid_relations:
+                        raise ValueError(f"Relation non valide '{relation}' dans la ligne: {','.join(row)}")
+
+                    self.A.append([float(x.strip()) for x in row[:-2]])
+                    self.relations.append(relation)
+                    self.b.append(float(row[-1].strip()))
 
                 self.validate_data()
                 self.update_data_info()
@@ -346,6 +362,16 @@ class InputSimplexPage(tk.Frame):
         constr_text = tk.Text(constr_frame, height=10, width=40)
         constr_text.pack(fill="both", expand=True, padx=5, pady=5)
 
+        # Relations input
+        relations_frame = ttk.LabelFrame(
+            main_frame,
+            text="Relations (<, <=, >, >=, =) - Une par ligne",
+            style="TLabelframe",
+        )
+        relations_frame.pack(fill="x", pady=5)
+        relations_text = tk.Text(relations_frame, height=5, width=40)
+        relations_text.pack(fill="both", expand=True, padx=5, pady=5)
+
         # Right-hand side input
         b_frame = ttk.LabelFrame(
             main_frame,
@@ -368,12 +394,16 @@ class InputSimplexPage(tk.Frame):
             button_frame,
             text="Valider",
             command=lambda: self.validate_manual_input(
-                dialog, obj_entry.get(), constr_text.get("1.0", "end-1c"), b_entry.get()
+                dialog,
+                obj_entry.get(),
+                constr_text.get("1.0", "end-1c"),
+                relations_text.get("1.0", "end-1c"),
+                b_entry.get(),
             ),
             style="Accent.TButton",
         ).pack(side="right", padx=5, fill="x", expand=True)
 
-    def validate_manual_input(self, dialog, c_str, A_str, b_str):
+    def validate_manual_input(self, dialog, c_str, A_str, relations_str, b_str):
         """Validate manual input data"""
         try:
             # Parse objective function
@@ -392,17 +422,21 @@ class InputSimplexPage(tk.Frame):
             if not A:
                 raise ValueError("Veuillez saisir au moins une contrainte")
 
+            # Parse relations
+            relations = [rel.strip() for rel in relations_str.strip().split("\n") if rel.strip()]
+            valid_relations = ["<", "<=", ">", ">=", "="]
+            if any(r not in valid_relations for r in relations):
+                raise ValueError(f"Relation invalide. Utilisez {', '.join(valid_relations)}")
+
             # Parse right-hand side
             b = [float(x.strip()) for x in b_str.split(",") if x.strip()]
             if not b:
                 raise ValueError(
                     "Veuillez saisir au moins une valeur pour le second membre"
                 )
-
-            # Validate dimensions
-            if len(A) != len(b):
+            if len(A) != len(relations):
                 raise ValueError(
-                    "Le nombre de contraintes doit correspondre au nombre de valeurs du second membre"
+                    "Le nombre de relations doit correspondre au nombre de contraintes"
                 )
 
             if any(len(row) != len(c) for row in A):
@@ -413,6 +447,7 @@ class InputSimplexPage(tk.Frame):
             self.c = c
             self.A = A
             self.b = b
+            self.relations = relations
 
             self.update_data_info()
             self.run_button.config(state="normal")
@@ -433,6 +468,13 @@ class InputSimplexPage(tk.Frame):
         """Valide les données saisies pour le Simplexe"""
         if not self.c or not self.A or not self.b:
             raise ValueError("Toutes les données sont requises")
+        
+        # If relations were imported, check them. Otherwise, don't.
+        if self.relations:
+            if len(self.A) != len(self.relations):
+                 raise ValueError(
+                    "Le nombre de relations doit correspondre au nombre de contraintes."
+                )
 
         if len(self.A) != len(self.b):
             raise ValueError(
@@ -458,6 +500,7 @@ class InputSimplexPage(tk.Frame):
                 "c": self.c,
                 "A": self.A,
                 "b": self.b,
+                "relations": self.relations or ["<="] * len(self.b),
                 "optimization_type": self.optimization_type.get(),
             }
 
@@ -473,17 +516,17 @@ class InputSimplexPage(tk.Frame):
             self.update_status("Erreur lors de l'exécution de l'algorithme")
 
     def display_simplexe_results(self, data):
-        """Affiche les résultats avec la classe SimplexePage"""
+        """Affiche les résultats avec la classe SimplexPage"""
         # Effacer la visualisation précédente
         for widget in self.viz_frame.winfo_children():
             widget.destroy()
 
-        # Créer un cadre conteneur pour SimplexePage
+        # Créer un cadre conteneur pour SimplexPage
         container = ttk.Frame(self.viz_frame)
         container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Initialiser et afficher SimplexePage dans le conteneur
-        simplex_page = SimplexePage(container)
+        # Initialiser et afficher SimplexPage dans le conteneur
+        simplex_page = SimplexPage(container, self.controller, data)
         simplex_page.set_data(data)
         simplex_page.pack(fill="both", expand=True)
 
